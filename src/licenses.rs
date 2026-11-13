@@ -469,11 +469,12 @@ fn test_external_files_license_text() {
 #[cfg(test)]
 #[test]
 fn test_internal_files_license_text() {
-    // What Android and iOS show, including the written offer for the GPL
+    // What Android and iOS show, including the source links for the GPL
     // libraries. read_bundled_file() checks iOS has each file embedded.
     let mut text = String::new();
     print(&mut text, /* resources_are_external_files: */ false).unwrap();
     assert!(text.contains(INTERNAL_FSF_DYLIBS_SOURCE));
+    assert!(text.contains(FORK_MIT_LICENSE.trim_end()));
     // The GPL's full text, not just the notice.
     assert!(text.contains(INTERNAL_FSF_DYLIBS_GPL_HEADING));
     assert!(text.contains("END OF TERMS AND CONDITIONS"));

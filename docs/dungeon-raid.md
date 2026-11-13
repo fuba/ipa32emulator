@@ -12,4 +12,4 @@ For a new game, choose **New Game**, enter a name or tap **Random**, choose a di
 
 The iPhone build preserves the entire 320×480 game viewport, including the top heading and bottom controls. The game opens with OpenFeint's offline choice as the fallback for unset preferences. Online OpenFeint and PlayHaven content is outside the offline game path.
 
-Verified on a physical iPhone 18 Pro running iOS 27.2.1. A new game reached the board, a drag matched three coins and refilled their columns, and exiting to the title enabled **Continue**. The Rust library suite passed 79 tests on macOS.
+Verified on a physical iPhone 18 Pro running iOS 27.2.1. A new game reached the board, a drag matched three coins and refilled their columns, and exiting to the title enabled **Continue**. The iOS Release build of the rebranded fork compiled successfully. On Apple Silicon macOS, the Rust library suite passed 79 tests and the emulated TestApp passed 161 checks.

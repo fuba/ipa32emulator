@@ -789,9 +789,12 @@ typedef unsigned short CGGlyph;
 
 CGFontRef CGFontCreateWithDataProvider(CGDataProviderRef name);
 void CGFontRelease(CGFontRef font);
+bool CGFontGetGlyphsForUnichars(CGFontRef font, const UniChar *characters,
+                               CGGlyph *glyphs, size_t count);
 
 void CGContextSetFont(CGContextRef c, CGFontRef font);
 void CGContextSetFontSize(CGContextRef c, CGFloat size);
+void CGContextSetTextMatrix(CGContextRef c, CGAffineTransform matrix);
 void CGContextShowGlyphsAtPoint(CGContextRef c, CGFloat x, CGFloat y,
                                 const CGGlyph *glyphs, size_t count);
 
