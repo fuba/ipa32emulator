@@ -370,7 +370,7 @@ fn handle_open_err<T, E: std::fmt::Display, P: std::fmt::Debug>(
 ) -> T {
     match open_result {
         Ok(ok) => ok,
-        Err(e) => panic!("Unexpected I/O failure when trying to access real path {host_path:?}: {e}. This might indicate that files needed by iDared 32bit are missing, or were moved while it was running."),
+        Err(e) => panic!("Unexpected I/O failure when trying to access real path {host_path:?}: {e}. This might indicate that files needed by IPA32 Emulator are missing, or were moved while it was running."),
     }
 }
 

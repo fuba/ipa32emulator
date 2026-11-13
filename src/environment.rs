@@ -434,7 +434,7 @@ impl Environment {
 
             Some(Box::new(window::Window::new(
                 &format!(
-                    "{} (iDared 32bit {}{}{})",
+                    "{} (IPA32 Emulator {}{}{})",
                     bundle.display_name(),
                     super::branding(),
                     if super::branding().is_empty() {
@@ -549,7 +549,9 @@ impl Environment {
         let mut objc = objc::ObjC::new();
 
         let mut dyld = dyld::Dyld::new();
-        dyld.do_initial_linking(&bins, &mut mem, &mut objc)?;
+        // Dungeon Raid uses its bundled OpenFeint settings for local storage.
+        let use_guest_openfeint = bundle.bundle_identifier() == "com.fireflame.DungeonRaid";
+        dyld.do_initial_linking(&bins, &mut mem, &mut objc, use_guest_openfeint)?;
 
         let cpu = cpu::Cpu::new(match options.direct_memory_access {
             true => Some(&mut mem),
@@ -805,7 +807,7 @@ impl Environment {
         assert!(!options.headless);
         let mut window = Some(Box::new(window::Window::new(
             &format!(
-                "iDared 32bit {}{}{}",
+                "IPA32 Emulator {}{}{}",
                 super::branding(),
                 if super::branding().is_empty() {
                     ""
@@ -2346,7 +2348,8 @@ mod dylib_sorting_tests {
             let mut objc = ObjC::new();
             let mut dyld = crate::dyld::Dyld::new();
             let bins = [libgcc, libstdcxx];
-            dyld.do_initial_linking(&bins, &mut mem, &mut objc).unwrap();
+            dyld.do_initial_linking(&bins, &mut mem, &mut objc, false)
+                .unwrap();
 
             let mut cpu = Cpu::new(None);
             cpu.regs_mut()[Cpu::SP] = 0xFFFFF000;

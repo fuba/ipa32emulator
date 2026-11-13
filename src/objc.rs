@@ -47,15 +47,15 @@ pub use selectors::{selector, SEL};
 use crate::mem::{ConstVoidPtr, MutPtr};
 use crate::Environment;
 use classes::{
-    class_copyPropertyList, class_getInstanceMethod, class_getInstanceSize,
+    class_copyPropertyList, class_getClassMethod, class_getInstanceMethod, class_getInstanceSize,
     class_getMethodImplementation, class_getProperty, class_getSuperclass, class_replaceMethod,
     objc_getClass, property_getAttributes, property_getName, ClassHostObject, FakeClass,
     UnimplementedClass,
 };
 pub(crate) use messages::objc_msgSend;
 use messages::{objc_msgSendSuper2, objc_msgSend_stret, MsgSendSignature, MsgSendSuperSignature};
-use methods::{method_list_t, method_t};
-use objects::{objc_object, object_getClass, HostObjectEntry};
+use methods::{method_getImplementation, method_getTypeEncoding, method_list_t, method_t};
+use objects::{class_createInstance, objc_object, object_getClass, HostObjectEntry};
 use properties::{ivar_list_t, objc_copyStruct, objc_getProperty, objc_setProperty};
 use selectors::{sel_getName, sel_registerName};
 use synchronization::{objc_sync_enter, objc_sync_exit};
@@ -204,12 +204,16 @@ fn _Block_object_dispose(_env: &mut Environment, object: ConstVoidPtr, flags: i3
 
 const FUNCTIONS: FunctionExports = &[
     export_c_func!(class_getInstanceSize(_)),
+    export_c_func!(class_createInstance(_, _)),
     export_c_func!(class_getSuperclass(_)),
     export_c_func!(class_getProperty(_, _)),
     export_c_func!(class_copyPropertyList(_, _)),
     export_c_func!(property_getName(_)),
     export_c_func!(property_getAttributes(_)),
     export_c_func!(class_getInstanceMethod(_, _)),
+    export_c_func!(class_getClassMethod(_, _)),
+    export_c_func!(method_getImplementation(_)),
+    export_c_func!(method_getTypeEncoding(_)),
     export_c_func!(class_getMethodImplementation(_, _)),
     export_c_func!(class_replaceMethod(_, _, _, _)),
     export_c_func!(objc_msgSend(_, _)),

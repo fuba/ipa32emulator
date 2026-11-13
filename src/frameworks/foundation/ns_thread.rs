@@ -11,7 +11,8 @@ use crate::frameworks::core_foundation::CFTypeRef;
 use crate::frameworks::foundation::NSUInteger;
 use crate::libc::pthread::thread::{
     pthread_attr_init, pthread_attr_setdetachstate, pthread_attr_setstacksize, pthread_attr_t,
-    pthread_create, pthread_self, pthread_t, thread_id_for_pthread, PTHREAD_CREATE_DETACHED,
+    pthread_create, pthread_main, pthread_self, pthread_t, thread_id_for_pthread,
+    PTHREAD_CREATE_DETACHED,
 };
 use crate::mem::{guest_size_of, Mem, MutPtr, Ptr};
 use crate::objc::{
@@ -92,18 +93,13 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 + (id)currentThread {
-    // TODO: use ThreadId as key for lookup
-    // `pthread_self` internally is O(num of threads) time
     let pthread = pthread_self(env);
-    // Clippy suggestion for this warning will not build!
-    #[allow(clippy::map_entry)]
-    if !State::get(env).ns_threads.contains_key(&pthread) {
-        // We lazily instantiate NSThreads for POSIX threads
-        let ns_thread: id = msg_class![env; NSThread alloc];
-        let ns_thread: id = msg![env; ns_thread init];
-        State::get(env).ns_threads.insert(pthread, ns_thread);
-    }
-    *State::get(env).ns_threads.get(&pthread).unwrap()
+    ns_thread_for_pthread(env, pthread)
+}
+
++ (id)mainThread {
+    let pthread = pthread_main(env);
+    ns_thread_for_pthread(env, pthread)
 }
 
 + (id)callStackReturnAddresses {
@@ -136,6 +132,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 + (bool)isMainThread {
     env.current_thread == 0
+}
+
+- (bool)isMainThread {
+    thread_id_for_ns_thread(env, this) == Some(0)
 }
 
 - (id)initWithTarget:(id)target
@@ -268,6 +268,16 @@ pub const CLASSES: ClassExports = objc_classes! {
 @end
 
 };
+
+fn ns_thread_for_pthread(env: &mut Environment, pthread: pthread_t) -> id {
+    if let Some(&thread) = State::get(env).ns_threads.get(&pthread) {
+        return thread;
+    }
+    let thread: id = msg_class![env; NSThread alloc];
+    let thread: id = msg![env; thread init];
+    State::get(env).ns_threads.insert(pthread, thread);
+    thread
+}
 
 type NSThreadRef = CFTypeRef;
 

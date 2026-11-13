@@ -85,9 +85,9 @@ const char *property_getName(objc_property_t property);
 const char *property_getAttributes(objc_property_t property);
 #ifdef DEFINE_ME_WHEN_BUILDING_ON_MACOS
 SEL method_getName(Method m);
+#endif
 // Returns IMP, which isn't declared here.
 void (*method_getImplementation(Method m))(void);
-#endif
 
 // Foundation
 
@@ -789,9 +789,12 @@ typedef unsigned short CGGlyph;
 
 CGFontRef CGFontCreateWithDataProvider(CGDataProviderRef name);
 void CGFontRelease(CGFontRef font);
+bool CGFontGetGlyphsForUnichars(CGFontRef font, const UniChar *characters,
+                               CGGlyph *glyphs, size_t count);
 
 void CGContextSetFont(CGContextRef c, CGFontRef font);
 void CGContextSetFontSize(CGContextRef c, CGFloat size);
+void CGContextSetTextMatrix(CGContextRef c, CGAffineTransform matrix);
 void CGContextShowGlyphsAtPoint(CGContextRef c, CGFloat x, CGFloat y,
                                 const CGGlyph *glyphs, size_t count);
 

@@ -140,6 +140,7 @@ pub const DYLIB: crate::dyld::HostDylib = crate::dyld::HostDylib {
         ns_exception::FUNCTIONS,
         ns_file_manager::FUNCTIONS,
         ns_log::FUNCTIONS,
+        ns_method_signature::FUNCTIONS,
         ns_objc_runtime::FUNCTIONS,
     ],
 };
@@ -175,7 +176,7 @@ pub type NSUInteger = u32;
 // this should be equal to NSIntegerMax
 pub const NSNotFound: i32 = 0x7fffffff;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(C, packed)]
 pub struct NSRange {
     pub location: NSUInteger,

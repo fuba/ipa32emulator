@@ -9,7 +9,7 @@ use crate::abi::{CallFromHost, GuestFunction};
 use crate::dyld::{export_c_func, export_c_func_aliased, FunctionExports};
 use crate::fs::{resolve_path, GuestPath};
 use crate::libc::clocale::{setlocale, LC_CTYPE};
-use crate::libc::errno::{set_errno, EEXIST, EINVAL, ENAMETOOLONG, ENOTDIR};
+use crate::libc::errno::{set_errno, EEXIST, EINVAL, ENAMETOOLONG, ENOMEM, ENOTDIR};
 use crate::libc::string::strlen;
 use crate::libc::wchar::wchar_t;
 use crate::mem::{ConstPtr, ConstVoidPtr, GuestUSize, MutPtr, MutVoidPtr, Ptr, SafeRead};
@@ -66,6 +66,16 @@ fn realloc(env: &mut Environment, ptr: MutVoidPtr, size: GuestUSize) -> MutVoidP
         return malloc(env, size);
     }
     env.mem.realloc(ptr, size)
+}
+
+fn reallocf(env: &mut Environment, ptr: MutVoidPtr, size: GuestUSize) -> MutVoidPtr {
+    if let Some(result) = env.mem.try_realloc_in_heap(None, ptr, size) {
+        set_errno(env, 0);
+        return result;
+    }
+    free(env, ptr);
+    set_errno(env, ENOMEM);
+    MutVoidPtr::null()
 }
 
 fn free(env: &mut Environment, ptr: MutVoidPtr) {
@@ -777,6 +787,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(calloc(_, _)),
     export_c_func!(valloc(_)),
     export_c_func!(realloc(_, _)),
+    export_c_func!(reallocf(_, _)),
     export_c_func!(free(_)),
     export_c_func!(atexit(_)),
     export_c_func!(atoi(_)),

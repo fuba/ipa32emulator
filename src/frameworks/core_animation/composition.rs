@@ -629,13 +629,33 @@ unsafe fn composite_layer_recursive(
     let mut gles = window.make_internal_gl_ctx_current();
 
     let opacity = opacity * host_obj.opacity;
-    let cumulative_transform = {
-        let CALayerHostObject { bounds, .. } = host_obj;
-
+    let (cumulative_transform, clip) = {
         // Update the transform to match this layer's co-ordinate space.
-        let cumulative_transform =
+        let layer_transform =
             <Matrix<4> as From<_>>::from(host_obj.superlayer_to_layer_transform())
                 .multiply(&cumulative_transform);
+
+        if let Some((animation, offset)) = host_obj.move_in_transition {
+            let bounds = host_obj.bounds;
+            let clip = Some(bounds_clip(
+                env.framework_state.core_animation.composition.clip_scale,
+                bounds,
+                &layer_transform,
+                clip,
+            ));
+            set_clip(gles.as_mut(), clip);
+            drop(gles);
+            draw_transition_snapshot(env, animation, 0.0, bounds, layer_transform);
+            gles = env.window.as_mut().unwrap().make_internal_gl_ctx_current();
+            let translated =
+                Matrix::translate_3d(offset.x, offset.y, 0.0).multiply(&layer_transform);
+            (translated, clip)
+        } else {
+            (layer_transform, clip)
+        }
+    };
+    {
+        let bounds = host_obj.bounds;
 
         // Reposition and scale the unit quad (see ARRAY_BUFFER binding)
         // so it will have the right size in this layer's co-ordinate space.
@@ -646,9 +666,7 @@ unsafe fn composite_layer_recursive(
                 .multiply(&Matrix::translate_3d(bounds.origin.x, bounds.origin.y, 0.0))
                 .multiply(&cumulative_transform),
         );
-
-        cumulative_transform
-    };
+    }
 
     // A layer that masks to its bounds clips itself and its sublayers.
     let clip = if host_obj.masks_to_bounds {

@@ -40,6 +40,10 @@ pub const UIControlEventEditingDidEndOnExit: UIControlEvents = 1 << 19;
 // TODO: Add the other UIControlContentVerticalAlignment enums
 pub type UIControlContentVerticalAlignment = NSInteger;
 const UIControlContentVerticalAlignmentCenter: UIControlContentVerticalAlignment = 0;
+pub type UIControlContentHorizontalAlignment = NSInteger;
+pub const UIControlContentHorizontalAlignmentCenter: UIControlContentHorizontalAlignment = 0;
+pub const UIControlContentHorizontalAlignmentLeft: UIControlContentHorizontalAlignment = 1;
+pub const UIControlContentHorizontalAlignmentRight: UIControlContentHorizontalAlignment = 2;
 
 pub(super) struct UIControlHostObject {
     superclass: super::UIViewHostObject,
@@ -47,6 +51,7 @@ pub(super) struct UIControlHostObject {
     selected: bool,
     highlighted: bool,
     contentVerticalAlignment: UIControlContentVerticalAlignment,
+    content_horizontal_alignment: UIControlContentHorizontalAlignment,
     /// `UITouch*` of the touch currently being tracked, [nil] if none
     tracked_touch: id,
     tracking: bool,
@@ -63,6 +68,7 @@ impl Default for UIControlHostObject {
             selected: false,
             highlighted: false,
             contentVerticalAlignment: UIControlContentVerticalAlignmentCenter,
+            content_horizontal_alignment: UIControlContentHorizontalAlignmentCenter,
             tracked_touch: nil,
             tracking: false,
             action_targets: Vec::new(),
@@ -127,6 +133,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         selected: _,
         highlighted: _,
         contentVerticalAlignment: _,
+        content_horizontal_alignment: _,
         tracking: _,
         action_targets: _, // targets are weak references, nothing to do
         tracked_touch,
@@ -185,6 +192,15 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (())setContentVerticalAlignment:(UIControlContentVerticalAlignment)contentVerticalAlignment {
     env.objc.borrow_mut::<UIControlHostObject>(this).contentVerticalAlignment = contentVerticalAlignment;
+}
+
+- (UIControlContentHorizontalAlignment)contentHorizontalAlignment {
+    env.objc.borrow::<UIControlHostObject>(this).content_horizontal_alignment
+}
+
+- (())setContentHorizontalAlignment:(UIControlContentHorizontalAlignment)alignment {
+    env.objc.borrow_mut::<UIControlHostObject>(this).content_horizontal_alignment = alignment;
+    msg![env; this setNeedsLayout]
 }
 
 - (bool)tracking {

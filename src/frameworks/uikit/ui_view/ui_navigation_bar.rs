@@ -28,6 +28,7 @@ pub struct UINavigationBarHostObject {
     /// `UINavigationItem*`s, the top one last.
     items: Vec<id>,
     bar_style: UIBarStyle,
+    tint_color: id,
     /// Weak reference.
     delegate: id,
     title_label: id,
@@ -43,6 +44,7 @@ impl Default for UINavigationBarHostObject {
             superclass: Default::default(),
             items: Vec::new(),
             bar_style: UIBarStyleDefault,
+            tint_color: nil,
             delegate: nil,
             title_label: nil,
             item_views: Vec::new(),
@@ -216,6 +218,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     let UINavigationBarHostObject {
         items,
         title_label,
+        tint_color,
         item_views,
         back_button,
         ..
@@ -230,6 +233,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         release(env, view);
     }
     release(env, title_label);
+    release(env, tint_color);
     release(env, back_button);
     msg_super![env; this dealloc]
 }
@@ -248,6 +252,20 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (UIBarStyle)barStyle {
     env.objc.borrow::<UINavigationBarHostObject>(this).bar_style
 }
+- (id)tintColor {
+    env.objc.borrow::<UINavigationBarHostObject>(this).tint_color
+}
+- (())setTintColor:(id)color {
+    retain(env, color);
+    let host = env.objc.borrow_mut::<UINavigationBarHostObject>(this);
+    let old = std::mem::replace(&mut host.tint_color, color);
+    release(env, old);
+    let layer: id = msg![env; this layer];
+    () = msg![env; layer setContents:nil];
+    let background: id = if color == nil { msg_class![env; UIColor clearColor] } else { color };
+    () = msg![env; this setBackgroundColor:background];
+    () = msg![env; this setNeedsLayout];
+}
 - (())setBarStyle:(UIBarStyle)style {
     match style {
         UIBarStyleDefault | UIBarStyleBlack | UIBarStyleBlackTranslucent => {}
@@ -256,8 +274,9 @@ pub const CLASSES: ClassExports = objc_classes! {
     env.objc.borrow_mut::<UINavigationBarHostObject>(this).bar_style = style;
     // The background is drawn as an image (see layoutSubviews), and the
     // buttons are redrawn for the new style.
-    let clear: id = msg_class![env; UIColor clearColor];
-    () = msg![env; this setBackgroundColor:clear];
+    let tint: id = msg![env; this tintColor];
+    let background: id = if tint == nil { msg_class![env; UIColor clearColor] } else { tint };
+    () = msg![env; this setBackgroundColor:background];
     let mut to_clear = env
         .objc
         .borrow::<UINavigationBarHostObject>(this)
@@ -351,8 +370,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (())layoutSubviews {
-    let bar_style = env.objc.borrow::<UINavigationBarHostObject>(this).bar_style;
-    draw_bar_background(env, this, bar_style, false);
+    if env.objc.borrow::<UINavigationBarHostObject>(this).tint_color == nil {
+        let bar_style = env.objc.borrow::<UINavigationBarHostObject>(this).bar_style;
+        draw_bar_background(env, this, bar_style, false);
+    }
 
     let host = env.objc.borrow_mut::<UINavigationBarHostObject>(this);
     let old_views = std::mem::take(&mut host.item_views);

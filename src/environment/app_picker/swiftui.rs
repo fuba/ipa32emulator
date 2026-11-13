@@ -140,7 +140,7 @@ pub fn app_picker(
         json_string(crate::DISPLAY_VERSION),
         json_string(&crate::licenses::get_text()),
         optional(paths::url_for_opening_user_data_dir().ok()),
-        json_string("https://iDared32bit-emu.com/"),
+        json_string("https://github.com/fuba/ipa32emulator"),
         quick_options_json.join(","),
         optional(crate::window::START_ERROR.lock().unwrap().take()),
     );

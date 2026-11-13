@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from res/branding/app-icon.svg by dev-scripts/render-branding.sh. -->
+<resources>
+    <color name="launcher_background">#202327</color>
+</resources>

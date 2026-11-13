@@ -20,7 +20,6 @@ use crate::objc::{
 use crate::Environment;
 use plist::Value;
 use std::io::Cursor;
-use std::ops::Add;
 use std::time::{Duration, SystemTime};
 
 pub type NSPropertyListMutabilityOptions = NSUInteger;
@@ -195,7 +194,10 @@ fn deserialize_plist(
         }
         Value::Date(date_val) => {
             let time: SystemTime = (*date_val).into();
-            let time_interval = time.duration_since(apple_epoch()).unwrap().as_secs_f64();
+            let time_interval = match time.duration_since(apple_epoch()) {
+                Ok(duration) => duration.as_secs_f64(),
+                Err(error) => -error.duration().as_secs_f64(),
+            };
             let date: id = msg_class![env; NSDate alloc];
             msg![env; date initWithTimeIntervalSinceReferenceDate:time_interval]
         }
@@ -309,7 +311,12 @@ fn serialize_plist(env: &mut Environment, plist: id) -> Value {
         Value::Data(buffer_slice.to_vec())
     } else if class == env.objc.get_known_class("NSDate", &mut env.mem) {
         let date = env.objc.borrow::<NSDateHostObject>(plist);
-        let time = apple_epoch().add(Duration::from_secs_f64(date.time_interval));
+        let duration = Duration::from_secs_f64(date.time_interval.abs());
+        let time = if date.time_interval < 0.0 {
+            apple_epoch() - duration
+        } else {
+            apple_epoch() + duration
+        };
         Value::Date(time.into())
     } else {
         unimplemented!("class {}", env.objc.get_class_name(class))

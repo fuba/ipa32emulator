@@ -1,14 +1,6 @@
 name: Lint and test
 
-# Slimmed-down CI for the iDared 32bit fork: formatting, lint (clippy) and the
-# test suite only. This fork does not build or publish desktop/Android binary
-# artifacts (its release is the iOS app), so no build/bundle/upload steps.
-
 on:
-  push:
-    branches: [ "idared32bit" ]
-  pull_request:
-    branches: [ "idared32bit" ]
   workflow_dispatch:
 
 env:
@@ -62,6 +54,12 @@ jobs:
         run: cd ${{ github.workspace }}/tests && curl -L https://github.com/touchHLE/common-3.0-sdk/releases/latest/download/common-3.0.sdk-macOS-universal.tar.gz | tar xzv
       - name: Install x86_64 toolchain
         run: rustup target add x86_64-apple-darwin
+      - name: Supply guest libraries for the tests
+        shell: bash
+        run: |
+          upstream_commit=33c34bc138473050787b9518d6e07e23b18c0c4e
+          git show "$upstream_commit:dylibs/libgcc_s.1.dylib" > dylibs/libgcc_s.1.dylib
+          git show "$upstream_commit:dylibs/libstdc++.6.0.9.dylib" > dylibs/libstdc++.6.0.9.dylib
       - name: Test
         run: cargo test --target x86_64-apple-darwin
         env:
@@ -117,6 +115,12 @@ jobs:
     # Windows seems to break the stdout pipe for some reason
     - name: Get copy of common-3.0-sdk
       run: cd ${{ github.workspace }}/tests && curl -L --output ${{ runner.temp }}\sdk.tar.gz https://github.com/touchHLE/common-3.0-sdk/releases/latest/download/common-3.0.sdk-windows-x86_64.tar.gz && tar xzvf ${{ runner.temp }}\sdk.tar.gz
+    - name: Supply guest libraries for the tests
+      shell: bash
+      run: |
+        upstream_commit=33c34bc138473050787b9518d6e07e23b18c0c4e
+        git show "$upstream_commit:dylibs/libgcc_s.1.dylib" > dylibs/libgcc_s.1.dylib
+        git show "$upstream_commit:dylibs/libstdc++.6.0.9.dylib" > dylibs/libstdc++.6.0.9.dylib
     - name: Test
       run: cargo test
       env:

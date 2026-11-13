@@ -57,3 +57,8 @@ DUMP.txt
 # Local, uncommitted Xcode signing settings (holds your Apple Team ID)
 
 /Local.xcconfig
+
+# Game packages and locally supplied guest libraries.
+*.ipa
+/dylibs/libgcc_s.1.dylib
+/dylibs/libstdc++.6.0.9.dylib

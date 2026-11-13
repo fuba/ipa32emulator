@@ -5,11 +5,17 @@
  */
 //! `UIButton`.
 
-use super::{UIControlState, UIControlStateNormal};
+use super::{
+    UIControlContentHorizontalAlignment, UIControlContentHorizontalAlignmentLeft,
+    UIControlContentHorizontalAlignmentRight, UIControlState, UIControlStateNormal,
+};
 use crate::frameworks::core_graphics::{CGFloat, CGPoint, CGRect, CGSize};
 use crate::frameworks::foundation::ns_string::{from_rust_string, get_static_str, to_rust_string};
 use crate::frameworks::foundation::{NSInteger, NSUInteger};
-use crate::frameworks::uikit::ui_font::UITextAlignmentCenter;
+use crate::frameworks::uikit::ui_font::{
+    UITextAlignmentCenter, UITextAlignmentLeft, UITextAlignmentRight,
+};
+use crate::frameworks::uikit::ui_geometry::UIEdgeInsets;
 use crate::objc::{
     autorelease, id, impl_HostObject_with_superclass, msg, msg_class, msg_super, nil, objc_classes,
     release, retain, todo_objc_setter, ClassExports, HostObject, NSZonePtr,
@@ -53,10 +59,12 @@ pub struct UIButtonHostObject {
     image_view: id,
     /// `UIImageView*`
     background_image_view: id,
+    content_edge_insets: UIEdgeInsets,
     /// Values are `UIString*`
     titles_for_states: HashMap<UIControlState, id>,
     /// Values are `UIColor*`
     title_colors_for_states: HashMap<UIControlState, id>,
+    title_shadow_colors_for_states: HashMap<UIControlState, id>,
     /// Values are `UIImage*`
     images_for_states: HashMap<UIControlState, id>,
     /// Values are `UIImage*`
@@ -71,8 +79,10 @@ impl Default for UIButtonHostObject {
             title_label: nil,
             image_view: nil,
             background_image_view: nil,
+            content_edge_insets: UIEdgeInsets::default(),
             titles_for_states: HashMap::new(),
             title_colors_for_states: HashMap::new(),
+            title_shadow_colors_for_states: HashMap::new(),
             images_for_states: HashMap::new(),
             background_images_for_states: HashMap::new(),
         }
@@ -85,6 +95,8 @@ fn update(env: &mut Environment, this: id) {
     () = msg![env; title_label setText:title];
     let title_color: id = msg![env; this currentTitleColor];
     () = msg![env; title_label setTextColor:title_color];
+    let shadow_color: id = msg![env; this currentTitleShadowColor];
+    () = msg![env; title_label setShadowColor:shadow_color];
 
     let image_view: id = msg![env; this imageView];
     let image: id = msg![env; this currentImage];
@@ -245,8 +257,10 @@ pub const CLASSES: ClassExports = objc_classes! {
         title_label,
         image_view,
         background_image_view,
+        content_edge_insets: _,
         titles_for_states,
         title_colors_for_states,
+        title_shadow_colors_for_states,
         images_for_states,
         background_images_for_states
     } = std::mem::take(env.objc.borrow_mut(this));
@@ -257,7 +271,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     for (_state, title) in titles_for_states {
         release(env, title);
     }
-    for (_state, color) in title_colors_for_states {
+    for (_state, color) in title_colors_for_states.into_iter().chain(title_shadow_colors_for_states) {
         release(env, color);
     }
     for (_state, image) in images_for_states {
@@ -274,8 +288,19 @@ pub const CLASSES: ClassExports = objc_classes! {
     let title_label = host_object.title_label;
     let background_image_view = host_object.background_image_view;
     let image_view = host_object.image_view;
+    let insets = host_object.content_edge_insets;
     let bounds: CGRect = msg![env; this bounds];
     () = msg![env; background_image_view setFrame:bounds];
+    let bounds = CGRect {
+        origin: CGPoint {
+            x: bounds.origin.x + insets.left,
+            y: bounds.origin.y + insets.top,
+        },
+        size: CGSize {
+            width: (bounds.size.width - insets.left - insets.right).max(0.0),
+            height: (bounds.size.height - insets.top - insets.bottom).max(0.0),
+        },
+    };
 
     // Unlike the background image, the image keeps its size (shrunk to fit
     // if needed), and sits left of the title, the two centred together.
@@ -300,7 +325,15 @@ pub const CLASSES: ClassExports = objc_classes! {
         size.width.min(bounds.size.width - image_size.width)
     };
     let content_width = if image == nil { title_width } else { image_size.width + title_width };
-    let x = bounds.origin.x + ((bounds.size.width - content_width) / 2.0).round();
+    let alignment: UIControlContentHorizontalAlignment = msg![env; this contentHorizontalAlignment];
+    let remaining_width = bounds.size.width - content_width;
+    let (offset, text_alignment) = match alignment {
+        UIControlContentHorizontalAlignmentLeft => (0.0, UITextAlignmentLeft),
+        UIControlContentHorizontalAlignmentRight => (remaining_width, UITextAlignmentRight),
+        _ => ((remaining_width / 2.0).round(), UITextAlignmentCenter),
+    };
+    () = msg![env; title_label setTextAlignment:text_alignment];
+    let x = bounds.origin.x + offset;
     let image_frame = CGRect {
         origin: CGPoint {
             x,
@@ -322,6 +355,17 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)titleLabel {
     env.objc.borrow_mut::<UIButtonHostObject>(this).title_label
+}
+
+- (())setContentEdgeInsets:(UIEdgeInsets)insets {
+    env.objc.borrow_mut::<UIButtonHostObject>(this).content_edge_insets = insets;
+    msg![env; this setNeedsLayout]
+}
+
+// iPhone OS 2 exposed this property directly on UIButton.
+- (())setTitleShadowOffset:(CGSize)offset {
+    let title_label: id = msg![env; this titleLabel];
+    msg![env; title_label setShadowOffset:offset]
 }
 
 - (id)imageView {
@@ -434,6 +478,25 @@ pub const CLASSES: ClassExports = objc_classes! {
     retain(env, color);
     let host_obj = env.objc.borrow_mut::<UIButtonHostObject>(this);
     if let Some(old) = host_obj.title_colors_for_states.insert(state, color) {
+        release(env, old);
+    }
+    update(env, this);
+}
+
+- (id)currentTitleShadowColor {
+    let state: UIControlState = msg![env; this state];
+    msg![env; this titleShadowColorForState:state]
+}
+
+- (id)titleShadowColorForState:(UIControlState)state {
+    let colors = &env.objc.borrow::<UIButtonHostObject>(this).title_shadow_colors_for_states;
+    colors.get(&state).or_else(|| colors.get(&UIControlStateNormal)).copied().unwrap_or(nil)
+}
+
+- (())setTitleShadowColor:(id)color forState:(UIControlState)state {
+    retain(env, color);
+    let colors = &mut env.objc.borrow_mut::<UIButtonHostObject>(this).title_shadow_colors_for_states;
+    if let Some(old) = colors.insert(state, color) {
         release(env, old);
     }
     update(env, this);

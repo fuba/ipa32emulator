@@ -200,6 +200,18 @@ pub const CLASSES: ClassExports = objc_classes! {
     }
 }
 
+- (id)host {
+    let &NSURLHostObject::OtherURL { ns_string } = env.objc.borrow(this) else {
+        return nil;
+    };
+    let url = to_rust_string(env, ns_string);
+    let Some(host) = url_host(&url) else {
+        return nil;
+    };
+    let host = from_rust_string(env, host.to_owned());
+    autorelease(env, host)
+}
+
 - (id)query {
     // File URLs made from paths never have one.
     let &NSURLHostObject::OtherURL { ns_string } = env.objc.borrow(this) else {
@@ -293,6 +305,21 @@ fn split_url(url: &str) -> (Option<&str>, Option<&str>, &str, Option<&str>, Opti
     (scheme, authority, path, query, fragment)
 }
 
+fn url_host(url: &str) -> Option<&str> {
+    let authority = split_url(url).1?;
+    let host_and_port = authority.rsplit('@').next()?;
+    let host = if let Some(ipv6) = host_and_port.strip_prefix('[') {
+        let (address, port) = ipv6.split_once(']')?;
+        if !port.is_empty() && !port.starts_with(':') {
+            return None;
+        }
+        address
+    } else {
+        host_and_port.split(':').next()?
+    };
+    (!host.is_empty()).then_some(host)
+}
+
 /// Removes `.` and `..` segments from a path (RFC 3986 section 5.2.4).
 fn remove_dot_segments(path: &str) -> String {
     let segments: Vec<&str> = path.split('/').collect();
@@ -369,7 +396,17 @@ fn resolve_url_reference(base: &str, reference: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_url_reference;
+    use super::{resolve_url_reference, url_host};
+
+    #[test]
+    fn host_excludes_user_info_and_port() {
+        assert_eq!(
+            url_host("https://user:pass@example.com:8443/a"),
+            Some("example.com")
+        );
+        assert_eq!(url_host("http://[::1]:8080/"), Some("::1"));
+        assert_eq!(url_host("/relative/path"), None);
+    }
 
     #[test]
     fn test_resolve_url_reference() {

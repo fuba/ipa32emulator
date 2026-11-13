@@ -448,7 +448,7 @@ impl HeapAllocator {
 
     pub fn alloc(&mut self, vm: &mut VMAllocator, size: GuestUSize) -> Option<Chunk> {
         let size = size.max(MIN_CHUNK_SIZE);
-        let size = Self::align(size, MIN_CHUNK_SIZE);
+        let size = size.checked_next_multiple_of(MIN_CHUNK_SIZE)?;
 
         let alloc = if size > Self::HEAP_ALLOCATION_THRESHOLD {
             let alloc = vm.allocate(None, size).ok()?;
@@ -474,14 +474,6 @@ impl HeapAllocator {
         let alloc = vm.allocate(None, size).ok()?;
         self.external_chunks.insert(alloc);
         Some(alloc)
-    }
-
-    fn align(size: GuestUSize, align: GuestUSize) -> GuestUSize {
-        if !size.is_multiple_of(align) {
-            size + align - (size % align)
-        } else {
-            size
-        }
     }
 
     /// This is used for realloc
@@ -570,7 +562,9 @@ impl VMAllocator {
         address: Option<VAddr>,
         size: GuestUSize,
     ) -> Result<Chunk, VMAllocError> {
-        let size = size.next_multiple_of(PAGE_SIZE);
+        let size = size
+            .checked_next_multiple_of(PAGE_SIZE)
+            .ok_or(VMAllocError::NoSpace)?;
         match address {
             Some(address) => {
                 let address = address & !(PAGE_SIZE - 1);

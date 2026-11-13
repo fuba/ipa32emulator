@@ -24,6 +24,7 @@
 		E36F8FD52DD1B14F00950EF2 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E36F8FD42DD1B14F00950EF2 /* QuartzCore.framework */; };
 		E36F8FD72DD1B16400950EF2 /* libc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E36F8FD62DD1B16400950EF2 /* libc++.tbd */; };
 		E36F8FD92DD1B17400950EF2 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E36F8FD82DD1B17400950EF2 /* libiconv.tbd */; };
+		0D1000000000000000000002 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D1000000000000000000001 /* libicucore.tbd */; };
 		E36F91AC2DD1BCF600950EF2 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = E36F91AB2DD1BCF300950EF2 /* Fonts */; };
 		E3FACE0000000000000020 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = E3FACE0000000000000010 /* README.md */; };
 		E3FACE0000000000000021 /* COPYING.libgcc in Resources */ = {isa = PBXBuildFile; fileRef = E3FACE0000000000000011 /* COPYING.libgcc */; };
@@ -53,6 +54,7 @@
 		E36F8FD42DD1B14F00950EF2 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		E36F8FD62DD1B16400950EF2 /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
 		E36F8FD82DD1B17400950EF2 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
+		0D1000000000000000000001 /* libicucore.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libicucore.tbd; path = usr/lib/libicucore.tbd; sourceTree = SDKROOT; };
 		E36F91AB2DD1BCF300950EF2 /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fonts; sourceTree = SOURCE_ROOT; };
 		E3A46EC32DD1A44100619FED /* iDared 32bit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "iDared 32bit.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E3A46EDD2DD1A79A00619FED /* SDL.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SDL.xcodeproj; path = ../vendor/SDL/Xcode/SDL/SDL.xcodeproj; sourceTree = "<absolute>"; };
@@ -97,6 +99,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E36F8FD92DD1B17400950EF2 /* libiconv.tbd in Frameworks */,
+				0D1000000000000000000002 /* libicucore.tbd in Frameworks */,
 				E36F8FD72DD1B16400950EF2 /* libc++.tbd in Frameworks */,
 				E36F8FD52DD1B14F00950EF2 /* QuartzCore.framework in Frameworks */,
 				E36F8FD32DD1B13C00950EF2 /* CoreMotion.framework in Frameworks */,
@@ -130,6 +133,7 @@
 			children = (
 				4F5818482F84076100018CE3 /* libiDared32bit_static.a */,
 				E36F8FD82DD1B17400950EF2 /* libiconv.tbd */,
+				0D1000000000000000000001 /* libicucore.tbd */,
 				E36F8FD62DD1B16400950EF2 /* libc++.tbd */,
 				E36F8FD42DD1B14F00950EF2 /* QuartzCore.framework */,
 				E36F8FD22DD1B13C00950EF2 /* CoreMotion.framework */,
@@ -436,7 +440,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = ../vendor/SDL/include;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "iDared 32bit";
+				INFOPLIST_KEY_CFBundleDisplayName = "IPA32 Emulator";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
@@ -452,7 +456,7 @@
 					"@executable_path/Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.alexmartin.idared32bit;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fuba.ipa32emulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -472,7 +476,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = ../vendor/SDL/include;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "iDared 32bit";
+				INFOPLIST_KEY_CFBundleDisplayName = "IPA32 Emulator";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
@@ -488,7 +492,7 @@
 					"@executable_path/Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.alexmartin.idared32bit;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fuba.ipa32emulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -570,7 +574,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = ../vendor/SDL/include;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "iDared 32bit";
+				INFOPLIST_KEY_CFBundleDisplayName = "IPA32 Emulator";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
@@ -586,7 +590,7 @@
 					"@executable_path/Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.alexmartin.idared32bit;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fuba.ipa32emulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

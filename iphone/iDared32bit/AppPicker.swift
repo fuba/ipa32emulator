@@ -53,7 +53,7 @@ struct PickerInput: Decodable {
     let startError: String?
 }
 
-/// Games opened with "Open in iDared 32bit", waiting for the picker.
+/// Games opened with "Open in IPA32 Emulator", waiting for the picker.
 enum OpenedGames {
     /// Only used on the main thread, where UIKit calls the hook below.
     nonisolated(unsafe) static var pending: [URL] = []
@@ -356,7 +356,7 @@ final class PickerModel: ObservableObject {
         importGames(urls.flatMap(Self.games(in:)).map { (url: $0, move: false) })
     }
 
-    /// Imports games opened with "Open in iDared 32bit": copies of the
+    /// Imports games opened with "Open in IPA32 Emulator": copies of the
     /// originals, and anything iOS put in the Inbox, which is moved.
     func importSharedGames() {
         // Not while another import is copying games.
@@ -764,7 +764,7 @@ struct PickerView: View {
         content
             .statusBarHidden(false)
             // Back from File Manager (or anywhere else), maybe with games
-            // shared with "Open in iDared 32bit".
+            // shared with "Open in IPA32 Emulator".
             .onReceive(
                 NotificationCenter.default
                     .publisher(for: UIApplication.didBecomeActiveNotification)
@@ -941,22 +941,23 @@ struct Header: View {
                 width: content.maxX - 160,
                 height: content.height - 4
             )
-            if model.hideHeaderLogo {
-                Text("iDared 32bit")
+            HStack(spacing: 2) {
+                if !model.hideHeaderLogo {
+                    Image("AppPickerLogo")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 38, height: 38)
+                        .accessibilityHidden(true)
+                }
+                Text("IPA32 Emulator")
                     .font(.system(size: 24, weight: .black))
                     .fontWidth(.condensed)
-                    .foregroundColor(model.headerTextColor.color)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                    .place(logoFrame)
-            } else {
-                Image("AppPickerLogo")
-                    .resizable()
-                    .scaledToFit()
-                    .grayscale(model.blackHeaderShown ? 1 : 0)
-                    .opacity(model.blackHeaderShown ? 0.65 : 1)
-                    .place(logoFrame)
             }
+            .foregroundColor(model.headerTextColor.color)
+            .place(logoFrame)
             HStack(spacing: 8) {
                 HeaderButton(
                     title: "About",
@@ -1359,7 +1360,7 @@ struct SettingsView: View {
                         model.open(model.input.websiteURL)
                     } label: {
                         Label {
-                            Text("iDared 32bit Website")
+                            Text("IPA32 Emulator Website")
                                 .foregroundColor(.primary)
                         } icon: {
                             Image(systemName: "safari")

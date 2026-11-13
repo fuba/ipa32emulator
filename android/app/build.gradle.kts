@@ -77,14 +77,14 @@ android {
     }
     defaultConfig {
         val branding = getTouchHLEBranding()
-        applicationId = "org.alexmartin.idared32bit"
+        applicationId = "dev.fuba.ipa32emulator"
         if (!branding.isEmpty()) {
             applicationIdSuffix = branding.lowercase()
         }
-        resValue("string", "app_name", join("iDared 32bit", " ", branding))
-        buildConfigField("String", "APP_NAME", "\"${join("iDared 32bit", " ", branding)}\"")
-        // iDared 32bit has one icon for every branding.
-        manifestPlaceholders["icon"] = "@drawable/icon"
+        resValue("string", "app_name", join("IPA32 Emulator", " ", branding))
+        buildConfigField("String", "APP_NAME", "\"${join("IPA32 Emulator", " ", branding)}\"")
+        // IPA32 Emulator has one icon for every branding.
+        manifestPlaceholders["icon"] = "@drawable/launcher"
         buildConfigField("int", "APP_ICON", "R.drawable.icon")
         versionName = join(getVersionName(), " ", branding)
         versionCode = getVersionCode()

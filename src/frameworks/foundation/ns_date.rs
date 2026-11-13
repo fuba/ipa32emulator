@@ -17,8 +17,7 @@ use crate::objc::{
 
 use crate::frameworks::foundation::ns_keyed_archiver::get_value_to_encode_for_current_key;
 use crate::frameworks::foundation::ns_keyed_unarchiver::decode_current_date;
-use std::ops::{Add, Sub};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 #[derive(Default)]
 pub(super) struct NSDateHostObject {
@@ -184,15 +183,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (NSTimeInterval)timeIntervalSince1970 {
     let time_interval = env.objc.borrow::<NSDateHostObject>(this).time_interval;
-    let new_time = if time_interval >= 0.0 {
-        apple_epoch().add(Duration::from_secs_f64(time_interval))
-    } else {
-        apple_epoch().sub(Duration::from_secs_f64(-time_interval))
-    };
-    new_time
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs_f64()
+    time_interval + SECS_FROM_UNIX_TO_APPLE_EPOCHS as f64
 }
 
 - (id)addTimeInterval:(NSTimeInterval)seconds {

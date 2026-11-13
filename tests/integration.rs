@@ -235,6 +235,38 @@ fn copy_dir_all(source: PathBuf, destination: PathBuf) -> std::io::Result<()> {
     Ok(())
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn align_guest_libstdcxx(output: &Path) -> Result<PathBuf, Box<dyn Error>> {
+    // The legacy linker mmaps slices at their offsets in a fat file. The
+    // SDK binary uses 4/8 KiB alignment, below Apple Silicon's 16 KiB pages.
+    let source = current_dir()?.join("dylibs/libstdc++.6.0.9.dylib");
+    let armv6 = output.join("libstdcxx-armv6.dylib");
+    let armv7 = output.join("libstdcxx-armv7.dylib");
+    for (arch, slice) in [("armv6", &armv6), ("armv7", &armv7)] {
+        let status = Command::new("xcrun")
+            .args(["lipo", "-thin", arch])
+            .arg(&source)
+            .arg("-output")
+            .arg(slice)
+            .status()?;
+        if !status.success() {
+            return Err(format!("lipo could not extract {arch} from {}", source.display()).into());
+        }
+    }
+    let aligned = output.join("libstdc++.6.0.9.dylib");
+    let status = Command::new("xcrun")
+        .args(["lipo", "-create"])
+        .args([armv6, armv7])
+        .args(["-segalign", "armv6", "4000", "-segalign", "armv7", "4000"])
+        .arg("-output")
+        .arg(&aligned)
+        .status()?;
+    if !status.success() {
+        return Err("lipo could not align the libstdc++ slices".into());
+    }
+    Ok(aligned)
+}
+
 #[test]
 fn test_app() -> Result<(), Box<dyn Error>> {
     let tests_dir = current_dir()?.join("tests");
@@ -368,9 +400,15 @@ fn test_app() -> Result<(), Box<dyn Error>> {
         build_object(&tests_dir, &out_path, [stub_src_path].iter(), &compile_args).unwrap();
     }
 
-    // Link against libstdc++ to support C++ test sources (virtual inheritance
-    // tests etc). The bundled libstdc++ dylib path is already in the search
-    // path via bundled_libs_search_arg.
+    // Link the guest C++ tests against the original SDK libstdc++.
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    extra_linker_args.push(
+        align_guest_libstdcxx(&stubs_dir)?
+            .into_os_string()
+            .into_string()
+            .map_err(|path| format!("non-UTF-8 libstdc++ path: {path:?}"))?,
+    );
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
     extra_compile_args.push("-lstdc++.6.0.9");
 
     // Vec<String> -> &[&str] ownership shenanigans

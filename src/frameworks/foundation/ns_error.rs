@@ -80,6 +80,13 @@ pub const CLASSES: ClassExports = objc_classes! {
     autorelease(env, res)
 }
 
+- (id)description {
+    let &ErrorHostObject { domain, code, .. } = env.objc.borrow(this);
+    let domain = if domain == nil { std::borrow::Cow::Borrowed("(null)") } else { ns_string::to_rust_string(env, domain) };
+    let description = ns_string::from_rust_string(env, format!("Error Domain={domain} Code={code}"));
+    autorelease(env, description)
+}
+
 - (id)localizedFailureReason {
     let user_info =  env.objc.borrow::<ErrorHostObject>(this).user_info;
     let key = ns_string::get_static_str(env, NSLocalizedFailureReasonErrorKey);

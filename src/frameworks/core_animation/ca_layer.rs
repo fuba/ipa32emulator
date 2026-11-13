@@ -6,9 +6,9 @@
 //! `CALayer`.
 
 use crate::dyld::{ConstantExports, HostConstant};
-use crate::frameworks::core_animation::ca_animation::get_transition;
 use crate::frameworks::core_animation::ca_transaction;
 use crate::frameworks::core_animation::ca_transform_3d::CATransform3D;
+use crate::frameworks::core_animation::{animation, ca_animation::get_transition};
 use crate::frameworks::core_foundation::time::CFTimeInterval;
 use crate::frameworks::core_graphics::cg_affine_transform::{
     CGAffineTransform, CGAffineTransformIdentity,
@@ -77,6 +77,7 @@ pub(super) struct CALayerHostObject {
     /// Presentation layer only: a fade transition and how far it's gone (0
     /// to 1), for the compositor.
     pub(super) fade_transition: Option<(id, f32)>,
+    pub(super) move_in_transition: Option<(id, CGPoint)>,
     /// Where `contents` goes in the bounds.
     pub(super) contents_gravity: ContentsGravity,
     /// Whether the contents and sublayers are clipped to the bounds.
@@ -230,6 +231,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         animations: HashMap::new(),
         anonymous_animations: HashSet::new(),
         fade_transition: None,
+        move_in_transition: None,
         contents_gravity: ContentsGravity::Resize,
         masks_to_bounds: false,
     });
@@ -402,6 +404,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     })
 }
 - (())setFrame:(CGRect)frame {
+    if !frame.origin.x.is_finite() || !frame.origin.y.is_finite()
+        || !frame.size.width.is_finite() || !frame.size.height.is_finite()
+    {
+        log!("Ignoring a layer frame with non-finite coordinates: {frame:?}");
+        return;
+    }
     let CALayerHostObject {
         anchor_point,
         affine_transform,
@@ -868,6 +876,25 @@ fn add_default_implied_basic_animation(
     from_value: id,
     to_value: id,
 ) {
+    let begins_from_current_state = get_static_str(
+        env,
+        crate::frameworks::uikit::ui_view::ANIMATION_BEGINS_FROM_CURRENT_STATE,
+    );
+    let flag: id = msg_class![env; CATransaction valueForKey:begins_from_current_state];
+    let from_value = if msg![env; flag boolValue] {
+        let layer = animation::State::default().presentation_layer(env, layer, false);
+        match key_path {
+            "anchorPoint" => msg_class![env; NSValue valueWithCGPoint:(layer.anchor_point)],
+            "bounds" => msg_class![env; NSValue valueWithCGRect:(layer.bounds)],
+            "cornerRadius" => msg_class![env; NSNumber numberWithFloat:(layer.corner_radius)],
+            "hidden" => msg_class![env; NSNumber numberWithBool:(layer.hidden)],
+            "opacity" => msg_class![env; NSNumber numberWithFloat:(layer.opacity)],
+            "position" => msg_class![env; NSValue valueWithCGPoint:(layer.position)],
+            _ => from_value,
+        }
+    } else {
+        from_value
+    };
     let key_path = get_static_str(env, key_path);
     let animation = msg_class![env; CABasicAnimation animationWithKeyPath:key_path];
     () = msg![env; animation setFromValue: from_value];

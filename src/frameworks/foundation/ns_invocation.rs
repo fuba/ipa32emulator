@@ -31,6 +31,8 @@ struct NSInvocationHostObject {
     retained_objects: Vec<id>,
     /// C string copies made by `retainArguments`
     copied_strings: Vec<MutPtr<u8>>,
+    return_value: [u8; 8],
+    return_size: GuestUSize,
 }
 impl HostObject for NSInvocationHostObject {}
 
@@ -64,6 +66,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         let type_ptr: ConstPtr<u8> = msg![env; sig getArgumentTypeAtIndex:i];
         argument_types.push(env.mem.cstr_at_utf8(type_ptr).unwrap().to_string());
     }
+    let return_size: NSUInteger = msg![env; sig methodReturnLength];
     let host_object = Box::new(NSInvocationHostObject {
         sig,
         argument_types,
@@ -73,6 +76,8 @@ pub const CLASSES: ClassExports = objc_classes! {
         arguments_retained: false,
         retained_objects: Vec::new(),
         copied_strings: Vec::new(),
+        return_value: [0; 8],
+        return_size,
     });
     let res = env.objc.alloc_object(this, host_object, &mut env.mem);
     autorelease(env, res)
@@ -177,9 +182,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     let all_count = arguments.len();
     assert_eq!(set_count + 2, all_count);
 
-    let sig = env.objc.borrow::<NSInvocationHostObject>(this).sig;
-    let ret_type: ConstPtr<u8> = msg![env; sig methodReturnType];
-    assert!(env.mem.read(ret_type) == b'v'); // TODO
+    let host = env.objc.borrow::<NSInvocationHostObject>(this);
+    let return_size = host.return_size;
+    let ret_type: ConstPtr<u8> = msg![env; (host.sig) methodReturnType];
+    let ret_type = unqualified(env.mem.cstr_at_utf8(ret_type).unwrap());
+    assert!(!ret_type.starts_with(['{', '(', '[']) && return_size <= 8, "Unsupported NSInvocation return type {ret_type}");
 
     // `call_from_host` re-use
     // TODO: retval_ptr
@@ -256,8 +263,19 @@ pub const CLASSES: ClassExports = objc_classes! {
     objc_msgSend(env, target, selector.unwrap());
 
     let regs = env.cpu.regs_mut(); // re-borrow
+    let mut value = [0; 8];
+    value[..4].copy_from_slice(&regs[0].to_le_bytes());
+    value[4..].copy_from_slice(&regs[1].to_le_bytes());
     regs[Cpu::SP] = old_sp;
-    // TODO: non-void return
+    env.objc.borrow_mut::<NSInvocationHostObject>(this).return_value = value;
+}
+
+- (())getReturnValue:(MutVoidPtr)buffer {
+    let host = env.objc.borrow::<NSInvocationHostObject>(this);
+    let length = host.return_size;
+    if length != 0 {
+        env.mem.bytes_at_mut(buffer.cast(), length).copy_from_slice(&host.return_value[..length as usize]);
+    }
 }
 
 - (())dealloc {

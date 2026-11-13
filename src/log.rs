@@ -22,7 +22,7 @@ use std::sync::LazyLock;
 /// the log.
 pub fn module_name(path: &'static str) -> &'static str {
     match path {
-        "touchHLE" => "iDared 32bit",
+        "touchHLE" => "IPA32 Emulator",
         _ => path.strip_prefix("touchHLE::").unwrap_or(path),
     }
 }
@@ -147,7 +147,7 @@ fn test_module_name() {
         module_name("touchHLE::frameworks::uikit"),
         "frameworks::uikit"
     );
-    assert_eq!(module_name("touchHLE"), "iDared 32bit");
+    assert_eq!(module_name("touchHLE"), "IPA32 Emulator");
     assert_eq!(module_name("other_crate::thing"), "other_crate::thing");
     assert_eq!(module_name("touchHLE_version"), "touchHLE_version");
 }

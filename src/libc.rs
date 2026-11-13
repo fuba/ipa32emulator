@@ -22,6 +22,8 @@ pub mod dns_sd;
 pub mod errno;
 pub mod fnmatch;
 pub mod glob;
+#[cfg(target_vendor = "apple")]
+pub mod icu;
 pub mod ifaddrs;
 pub mod keymgr;
 pub mod libkern;
@@ -120,6 +122,8 @@ pub struct State {
     crypto: crypto::State,
     dirent: dirent::State,
     dlfcn: dlfcn::State,
+    #[cfg(target_vendor = "apple")]
+    icu: icu::State,
     keymgr: keymgr::State,
     math: math::State,
     posix_io: posix_io::State,

@@ -165,9 +165,30 @@ fn SCNetworkReachabilitySetCallback(
     false
 }
 
+fn SCNetworkReachabilityScheduleWithRunLoop(
+    _env: &mut Environment,
+    _target: SCNetworkReachabilityRef,
+    _run_loop: CFTypeRef,
+    _mode: CFTypeRef,
+) -> bool {
+    // This implementation does not register reachability callbacks.
+    false
+}
+
+fn SCNetworkReachabilityUnscheduleFromRunLoop(
+    env: &mut Environment,
+    target: SCNetworkReachabilityRef,
+    run_loop: CFTypeRef,
+    mode: CFTypeRef,
+) -> bool {
+    SCNetworkReachabilityScheduleWithRunLoop(env, target, run_loop, mode)
+}
+
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(SCNetworkReachabilityCreateWithName(_, _)),
     export_c_func!(SCNetworkReachabilityCreateWithAddress(_, _)),
     export_c_func!(SCNetworkReachabilityGetFlags(_, _)),
     export_c_func!(SCNetworkReachabilitySetCallback(_, _, _)),
+    export_c_func!(SCNetworkReachabilityScheduleWithRunLoop(_, _, _)),
+    export_c_func!(SCNetworkReachabilityUnscheduleFromRunLoop(_, _, _)),
 ];

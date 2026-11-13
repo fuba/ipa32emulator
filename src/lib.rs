@@ -106,8 +106,8 @@ pub extern "C" fn SDL_main(
 
     // Empty args: brings up app picker.
     match main([String::new()].into_iter()) {
-        Ok(_) => echo!("iDared 32bit finished"),
-        Err(e) => echo!("iDared 32bit errored: {e:?}"),
+        Ok(_) => echo!("IPA32 Emulator finished"),
+        Err(e) => echo!("IPA32 Emulator errored: {e:?}"),
     }
     0
 }
@@ -122,10 +122,24 @@ pub extern "C" fn SDL_main(
 ) -> std::ffi::c_int {
     install_panic_hook();
 
-    // Empty args: brings up app picker.
-    match main([String::new()].into_iter()) {
-        Ok(_) => echo!("iDared 32bit finished"),
-        Err(e) => echo!("iDared 32bit errored: {e:?}"),
+    let mut args = vec![String::new()];
+    let mut launch_args = std::env::args().skip(1);
+    if let (Some(flag), Some(filename)) = (launch_args.next(), launch_args.next()) {
+        let path = std::path::Path::new(&filename);
+        if flag == "--launch-ipa"
+            && path
+                .file_name()
+                .is_some_and(|name| name == path.as_os_str())
+            && path.extension().is_some_and(|extension| extension == "ipa")
+        {
+            let path = paths::user_data_base_path().join("Games").join(path);
+            args.push(path.to_string_lossy().into_owned());
+            args.push("--no-error-popup".into());
+        }
+    }
+    match main(args.into_iter()) {
+        Ok(_) => echo!("IPA32 Emulator finished"),
+        Err(e) => echo!("IPA32 Emulator errored: {e:?}"),
     }
     0
 }
@@ -155,7 +169,7 @@ pub fn main<T: Iterator<Item = String>>(mut args: T) -> Result<(), String> {
     install_panic_hook();
 
     echo!(
-        "iDared 32bit {}{}{} — https://idared32bit-emu.com/ (based on touchHLE)",
+        "IPA32 Emulator {}{}{} — https://github.com/fuba/ipa32emulator (based on touchHLE)",
         branding(),
         if branding().is_empty() { "" } else { " " },
         VERSION,
@@ -174,7 +188,10 @@ pub fn main<T: Iterator<Item = String>>(mut args: T) -> Result<(), String> {
 
     {
         let base_path = paths::user_data_base_path();
-        log!("Base path for iDared 32bit files: {}", base_path.display());
+        log!(
+            "Base path for IPA32 Emulator files: {}",
+            base_path.display()
+        );
         paths::migrate_old_names();
         paths::prepopulate_user_data_dir();
     }
