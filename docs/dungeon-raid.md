@@ -12,4 +12,10 @@ For a new game, choose **New Game**, enter a name or tap **Random**, choose a di
 
 The iPhone build preserves the entire 320×480 game viewport, including the top heading and bottom controls. The game opens with OpenFeint's offline choice as the fallback for unset preferences. Online OpenFeint and PlayHaven content is outside the offline game path.
 
+## Checkpoints on iPhone
+
+Finish a turn, wait for the board to settle, then tap the circular exit button under the game. In the app picker, tap **Checkpoints** and **Save** next to one of the three slots. Existing slots ask before being overwritten.
+
+To go back, choose a slot's **Load**, confirm, then open Dungeon Raid and tap **Continue**. **Restore Previous Run** recovers the run that was active before the most recent slot load. Checkpoints use Dungeon Raid 1.3.4's own save data. They capture the board and run progress at the last completed turn, and leave other preferences alone.
+
 Verified on a physical iPhone 18 Pro running iOS 27.2.1. A new game reached the board, a drag matched three coins and refilled their columns, and exiting to the title enabled **Continue**. The iOS Release build of the rebranded fork compiled successfully. On Apple Silicon macOS, the Rust library suite passed 79 tests and the emulated TestApp passed 161 checks.

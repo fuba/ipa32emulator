@@ -23,6 +23,7 @@ struct PickerInput: Decodable {
         let hasIcon: Bool
         /// Whether it crashed the last time it was played.
         let crashed: Bool
+        let dungeonRaidCheckpoints: Bool
     }
     /// A choice (`choices` set) or a switch. Values are a choice's index, or
     /// 1 for a switch that's on.
@@ -215,6 +216,7 @@ final class PickerModel: ObservableObject {
     @Published var page = 0
     @Published var pressedApp: Int?
     @Published var showingSettings = false
+    @Published var showingCheckpoints = false
     @Published var showingCopyright = false
     @Published var copyrightPage = 0
     @Published var showingStartError: Bool
@@ -819,6 +821,11 @@ struct PickerView: View {
             .sheet(isPresented: $model.showingSettings) {
                 SettingsView(model: model)
             }
+            .sheet(isPresented: $model.showingCheckpoints) {
+                DungeonRaidCheckpointView(
+                    documents: URL(fileURLWithPath: model.input.appsFolder).deletingLastPathComponent()
+                )
+            }
             .alert("The Game Stopped", isPresented: $model.showingStartError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -1024,6 +1031,11 @@ struct ActionBar: View {
             }
             item("folder.fill", "File Manager") {
                 model.open(model.input.fileManagerURL)
+            }
+            if model.input.apps.contains(where: \.dungeonRaidCheckpoints) {
+                item("bookmark.fill", "Checkpoints") {
+                    model.showingCheckpoints = true
+                }
             }
             item("gearshape.fill", "Settings") {
                 model.showingSettings = true

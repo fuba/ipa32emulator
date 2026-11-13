@@ -28,8 +28,9 @@ under the Mozilla Public License, version 2.0 (MPL-2.0). The license is at
 <https://mozilla.org/MPL/2.0/>. The upstream iDared 32bit name, logo and app
 icon are © 2026 Alex Martin, all rights reserved.
 
-The standalone ICU and guest Security framework modules and this fork's
-artwork are licensed under MIT (see below).
+The standalone ICU and guest Security framework modules, the Dungeon Raid
+checkpoint feature's Swift files, and this fork's artwork are licensed under
+MIT (see below).
 
 Under the MPL-2.0, this program is provided on an \"as is\" basis, without
 warranty of any kind; see sections 6 and 7 of the license.

@@ -57,6 +57,8 @@ struct AppInfo {
     /// Whether it crashed the last time it was played.
     #[cfg_attr(not(target_os = "ios"), allow(dead_code))]
     crashed: bool,
+    #[cfg_attr(not(target_os = "ios"), allow(dead_code))]
+    dungeon_raid_checkpoints: bool,
 }
 
 /// The game picked last, to note whether it crashed.
@@ -190,7 +192,9 @@ fn enumerate_apps(
             continue;
         }
 
-        if let Some((display_name, icon, crashed)) = cache.as_mut().and_then(|c| c.get(&app_path)) {
+        if let Some((display_name, icon, crashed, dungeon_raid_checkpoints)) =
+            cache.as_mut().and_then(|c| c.get(&app_path))
+        {
             apps.push(AppInfo {
                 path: app_path,
                 display_name,
@@ -198,6 +202,7 @@ fn enumerate_apps(
                 display_name_ns_string: None,
                 icon_ui_image: None,
                 crashed,
+                dungeon_raid_checkpoints,
             });
             continue;
         }
@@ -219,6 +224,8 @@ fn enumerate_apps(
 
         // TODO: what if this crashes?
         let display_name = bundle.localized_display_name(&fs, languages);
+        let dungeon_raid_checkpoints = bundle.bundle_identifier() == "com.fireflame.DungeonRaid"
+            && bundle.bundle_version() == "1.3.4";
 
         let icon = if best_icons {
             bundle.load_best_icon(&fs)
@@ -233,7 +240,12 @@ fn enumerate_apps(
             }
         };
         if let Some(cache) = cache.as_mut() {
-            cache.insert(&app_path, &display_name, icon.as_ref());
+            cache.insert(
+                &app_path,
+                &display_name,
+                icon.as_ref(),
+                dungeon_raid_checkpoints,
+            );
         }
 
         apps.push(AppInfo {
@@ -243,6 +255,7 @@ fn enumerate_apps(
             display_name_ns_string: None,
             icon_ui_image: None,
             crashed: false,
+            dungeon_raid_checkpoints,
         });
     }
 
