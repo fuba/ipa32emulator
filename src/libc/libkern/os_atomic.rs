@@ -12,9 +12,9 @@
 //! by other threads. So we consider host functions to be atomic!
 
 use crate::dyld::FunctionExports;
+use crate::environment::{Environment, ThreadBlock};
 use crate::export_c_func;
 use crate::mem::{MutPtr, MutVoidPtr};
-use crate::Environment;
 
 fn OSAtomicAdd32(env: &mut Environment, amount: i32, value_ptr: MutPtr<i32>) -> i32 {
     OSAtomicAdd32Barrier(env, amount, value_ptr)
@@ -86,6 +86,20 @@ fn OSMemoryBarrier(_env: &mut Environment) {
     // no-op
 }
 
+fn OSSpinLockTry(env: &mut Environment, lock: MutPtr<i32>) -> bool {
+    OSAtomicCompareAndSwap32Barrier(env, 0, 1, lock)
+}
+
+fn OSSpinLockLock(env: &mut Environment, lock: MutPtr<i32>) {
+    while !OSSpinLockTry(env, lock) {
+        env.yield_thread(ThreadBlock::NotBlocked);
+    }
+}
+
+fn OSSpinLockUnlock(env: &mut Environment, lock: MutPtr<i32>) {
+    env.mem.write(lock, 0);
+}
+
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(OSAtomicAdd32(_, _)),
     export_c_func!(OSAtomicAdd32Barrier(_, _)),
@@ -95,4 +109,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(OSAtomicCompareAndSwapPtr(_, _, _)),
     export_c_func!(OSAtomicCompareAndSwapPtrBarrier(_, _, _)),
     export_c_func!(OSMemoryBarrier()),
+    export_c_func!(OSSpinLockTry(_)),
+    export_c_func!(OSSpinLockLock(_)),
+    export_c_func!(OSSpinLockUnlock(_)),
 ];

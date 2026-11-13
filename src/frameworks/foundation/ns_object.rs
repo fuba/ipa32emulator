@@ -67,12 +67,19 @@ fn method_signature(env: &mut Environment, class: Class, sel: SEL) -> id {
     if !env.objc.class_has_method(class, sel) {
         return nil;
     }
-    // TODO: support `host` method signatures
-    let Some(&sig) = env.objc.class_get_method_signature(class, sel) else {
-        panic!(
-            "TODO: method signature of host method {}",
-            sel.as_str(&env.mem)
-        );
+    let sig = if let Some(&sig) = env.objc.class_get_method_signature(class, sel) {
+        sig
+    } else {
+        let name = sel.as_str(&env.mem);
+        let types: &[u8] = match name {
+            "loadHTMLString:baseURL:" => b"v16@0:4@8@12",
+            _ => panic!("TODO: method signature of host method {name}"),
+        };
+        let sig = env.mem.alloc_and_write_cstr(types);
+        let signature =
+            msg_class![env; NSMethodSignature signatureWithObjCTypes:(sig.cast_const())];
+        env.mem.free(sig.cast());
+        return signature;
     };
     log_dbg!(
         "method signature: '{}' -> {:?}",
@@ -123,6 +130,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 + (())autorelease {
     // classes are not refcounted
+}
+
++ (id)copyWithZone:(NSZonePtr)_zone {
+    this
 }
 
 + (bool)instancesRespondToSelector:(SEL)selector {
@@ -540,6 +551,24 @@ pub const CLASSES: ClassExports = objc_classes! {
         this, class_name_string, class, key_string, key,
         env.objc.debug_all_class_selectors_as_strings(&env.mem, class).join(", "),
         env.objc.debug_all_class_ivars_as_strings(class).join(", "));
+}
+
+- (id)valueForKeyPath:(id)key_path { // NSString*
+    let path = to_rust_string(env, key_path);
+    if !path.contains('.') {
+        return msg![env; this valueForKey:key_path];
+    }
+    let mut value = this;
+    for key in path.split('.') {
+        let string = from_rust_string(env, key.to_owned());
+        let next: id = msg![env; value valueForKey:string];
+        release(env, string);
+        value = next;
+        if value == nil {
+            break;
+        }
+    }
+    value
 }
 
 - (id)dictionaryWithValuesForKeys:(id)keys { // NSArray*

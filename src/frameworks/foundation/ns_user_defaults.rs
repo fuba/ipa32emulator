@@ -109,6 +109,14 @@ pub const CLASSES: ClassExports = objc_classes! {
     };
     env.objc.borrow_mut::<NSUserDefaultsHostObject>(this).app_domain_dict = dict;
 
+    if env.bundle.bundle_identifier() == "com.fireflame.DungeonRaid" && !env.options.network_access {
+        // Use OpenFeint's own offline choice as a fallback for fresh installs.
+        let key = ns_string::get_static_str(env, "OpenFeintUserOptionUserFeintApproval");
+        let value = ns_string::get_static_str(env, "NO");
+        let defaults: id = msg_class![env; NSDictionary dictionaryWithObject:value forKey:key];
+        () = msg![env; this registerDefaults:defaults];
+    }
+
     this
 }
 

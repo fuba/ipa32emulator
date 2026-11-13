@@ -547,13 +547,18 @@ impl Mem {
         heap: Option<&mut HeapAllocator>,
         size: GuestUSize,
     ) -> MutVoidPtr {
+        self.try_alloc_in_heap(heap, size).unwrap_or_else(|| {
+            panic!("Could not find large enough chunk to allocate {size:#x} bytes")
+        })
+    }
+
+    fn try_alloc_in_heap(
+        &mut self,
+        heap: Option<&mut HeapAllocator>,
+        size: GuestUSize,
+    ) -> Option<MutVoidPtr> {
         let (vm, heap) = self.allocators_mut(heap);
-        let alloc = match heap.alloc(vm, size) {
-            None => {
-                panic!("Could not find large enough chunk to allocate {size:#x} bytes")
-            }
-            Some(alloc) => alloc,
-        };
+        let alloc = heap.alloc(vm, size)?;
         let ptr = Ptr::from_bits(alloc.base);
 
         if !self.zero_memory_on_free && alloc.size.get() <= HeapAllocator::HEAP_ALLOCATION_THRESHOLD
@@ -561,7 +566,7 @@ impl Mem {
             self.bytes_at_mut(ptr.cast(), size).fill(0);
         }
         log_dbg!("Allocated {:?} ({:#x} bytes)", ptr, size);
-        ptr
+        Some(ptr)
     }
 
     /// Allocate `size` bytes using the virtual memory allocator.
@@ -634,23 +639,35 @@ impl Mem {
     /// Resize allocation at `old_ptr` to `size` bytes in `heap`.
     pub fn realloc_in_heap(
         &mut self,
-        mut heap: Option<&mut HeapAllocator>,
+        heap: Option<&mut HeapAllocator>,
         old_ptr: MutVoidPtr,
         size: GuestUSize,
     ) -> MutVoidPtr {
+        self.try_realloc_in_heap(heap, old_ptr, size)
+            .unwrap_or_else(|| {
+                panic!("Could not find large enough chunk to reallocate {size:#x} bytes")
+            })
+    }
+
+    pub fn try_realloc_in_heap(
+        &mut self,
+        mut heap: Option<&mut HeapAllocator>,
+        old_ptr: MutVoidPtr,
+        size: GuestUSize,
+    ) -> Option<MutVoidPtr> {
         if old_ptr.is_null() {
-            return self.alloc_in_heap(heap, size);
+            return self.try_alloc_in_heap(heap, size);
         }
         // TODO: for a moment we always assume that we do not have enough size
         //       to realloc inplace
         let old_size = self.malloc_size_in_heap(heap.as_deref_mut(), old_ptr.cast_const());
         if old_size >= size {
-            return old_ptr;
+            return Some(old_ptr);
         }
-        let new_ptr = self.alloc_in_heap(heap.as_deref_mut(), size);
+        let new_ptr = self.try_alloc_in_heap(heap.as_deref_mut(), size)?;
         self.memmove(new_ptr, old_ptr.cast_const(), old_size);
         self.free_in_heap(heap, old_ptr);
-        new_ptr
+        Some(new_ptr)
     }
 
     /// Free allocations made with non vm prefixed `alloc` methods on

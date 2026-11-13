@@ -279,6 +279,7 @@ impl Dyld {
         bins: &[MachO],
         mem: &mut Mem,
         objc: &mut ObjC,
+        use_guest_openfeint: bool,
     ) -> Result<(), String> {
         assert!(self.return_to_host_routine.is_none());
         assert!(self.thread_exit_routine.is_none());
@@ -298,7 +299,7 @@ impl Dyld {
             self.do_non_lazy_linking(bin, bins, mem, objc);
         }
 
-        objc.register_bin_classes(&bins[0], mem);
+        objc.register_bin_classes(&bins[0], mem, use_guest_openfeint);
         objc.register_bin_categories(&bins[0], mem);
 
         ns_string::register_constant_strings(&bins[0], mem, objc);

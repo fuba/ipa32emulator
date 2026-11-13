@@ -167,14 +167,16 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (id)initWithLocaleIdentifier:(id)string { // NSString *
     let str = ns_string::to_rust_string(env, string);
     log_dbg!("[(NSLocale *){:?} initWithLocaleIdentifier:'{}']", this, str);
-    retain(env, string);
-    // Loosely assume 2-char lang code here
-    // TODO: locale identifier parsing
-    assert_eq!(2, str.len());
-    assert!(str.to_lowercase().eq(&str));
-    assert!(!str.contains('_') && !str.contains('-'));
-    assert!(env.objc.borrow::<NSLocaleHostObject>(this).language_code == nil);
-    env.objc.borrow_mut::<NSLocaleHostObject>(this).language_code = string;
+    let mut segments = str.split(['_', '-', '@']);
+    let language = segments.next().unwrap_or_default().to_ascii_lowercase();
+    let country = segments.find(|part| part.len() == 2 || (part.len() == 3 && part.bytes().all(|c| c.is_ascii_digit())));
+    let language_code = ns_string::from_rust_string(env, language);
+    let country_code = country.map_or(nil, |code| ns_string::from_rust_string(env, code.to_ascii_uppercase()));
+    let host = env.objc.borrow_mut::<NSLocaleHostObject>(this);
+    let old_language = std::mem::replace(&mut host.language_code, language_code);
+    let old_country = std::mem::replace(&mut host.country_code, country_code);
+    release(env, old_language);
+    release(env, old_country);
     this
 }
 

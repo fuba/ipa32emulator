@@ -181,6 +181,23 @@ pub(super) struct method_t {
 }
 unsafe impl SafeRead for method_t {}
 
+pub(super) fn method_getImplementation(env: &mut Environment, method: ConstPtr<method_t>) -> IMP {
+    if method.is_null() {
+        return IMP::guest_null();
+    }
+    IMP::Guest(env.mem.read(method).imp)
+}
+
+pub(super) fn method_getTypeEncoding(
+    env: &mut Environment,
+    method: ConstPtr<method_t>,
+) -> ConstPtr<u8> {
+    if method.is_null() {
+        return ConstPtr::null();
+    }
+    env.mem.read(method).types
+}
+
 impl ClassHostObject {
     // See classes.rs for host method parsing
 

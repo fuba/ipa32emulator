@@ -85,9 +85,9 @@ const char *property_getName(objc_property_t property);
 const char *property_getAttributes(objc_property_t property);
 #ifdef DEFINE_ME_WHEN_BUILDING_ON_MACOS
 SEL method_getName(Method m);
+#endif
 // Returns IMP, which isn't declared here.
 void (*method_getImplementation(Method m))(void);
-#endif
 
 // Foundation
 

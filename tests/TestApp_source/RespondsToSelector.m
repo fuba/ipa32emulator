@@ -44,15 +44,10 @@ static SEL test_method_name(Method method) {
 #endif
 }
 
-static void *test_method_imp(Method method) {
-#ifdef DEFINE_ME_WHEN_BUILDING_ON_MACOS
-  return (void *)method_getImplementation(method);
-#else
-  return ((struct method_layout *)method)->imp;
-#endif
-}
-
 int test_class_getInstanceMethod(void) {
+  if (method_getImplementation(0) != 0) {
+    return -6;
+  }
   TestClass *instance = [TestClass new];
   SEL answer_sel =
       NSSelectorFromString([NSString stringWithUTF8String:"answer"]);
@@ -60,7 +55,7 @@ int test_class_getInstanceMethod(void) {
   if (method == 0 || test_method_name(method) != answer_sel) {
     return -1;
   }
-  if (((int (*)(id, SEL))test_method_imp(method))(instance, answer_sel) != 42) {
+  if (((int (*)(id, SEL))method_getImplementation(method))(instance, answer_sel) != 42) {
     return -2;
   }
   if (class_getInstanceMethod([TestClass class], answer_sel) != method) {
@@ -80,7 +75,7 @@ int test_class_getInstanceMethod(void) {
   typedef NSUInteger (*retain_count_imp)(id, SEL);
   Method inherited =
       class_getInstanceMethod([TestClass class], retain_count_sel);
-  if (inherited == 0 || ((retain_count_imp)test_method_imp(inherited))(
+  if (inherited == 0 || ((retain_count_imp)method_getImplementation(inherited))(
                             instance, retain_count_sel) != 1) {
     return -5;
   }

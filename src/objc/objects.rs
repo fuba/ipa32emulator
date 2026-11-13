@@ -149,6 +149,18 @@ impl<T: HostObject> AnyHostObject for T {
 pub struct TrivialHostObject;
 impl HostObject for TrivialHostObject {}
 
+pub(super) fn class_createInstance(
+    env: &mut Environment,
+    cls: Class,
+    extra_bytes: GuestUSize,
+) -> id {
+    if cls == super::nil {
+        return super::nil;
+    }
+    env.objc
+        .alloc_object_with_extra_bytes(cls, extra_bytes, &mut env.mem)
+}
+
 impl super::ObjC {
     /// Read the all-important `isa`.
     pub fn read_isa(object: id, mem: &Mem) -> Class {
@@ -197,6 +209,25 @@ impl super::ObjC {
             host_object,
             mem,
             Some(NonZeroU32::new(1).unwrap()),
+        )
+    }
+
+    pub(super) fn alloc_object_with_extra_bytes(
+        &mut self,
+        isa: Class,
+        extra_bytes: GuestUSize,
+        mem: &mut Mem,
+    ) -> id {
+        let size = self.borrow::<ClassHostObject>(isa).instance_size;
+        let Some(size) = size.checked_add(extra_bytes) else {
+            return super::nil;
+        };
+        self.alloc_object_inner(
+            isa,
+            size,
+            Box::new(TrivialHostObject),
+            mem,
+            NonZeroU32::new(1),
         )
     }
 
@@ -368,5 +399,26 @@ pub(super) fn object_getClass(env: &mut Environment, obj: id) -> Class {
         nil
     } else {
         super::ObjC::read_isa(obj, &env.mem)
+    }
+}
+
+#[cfg(test)]
+mod allocation_tests {
+    use super::*;
+
+    #[test]
+    fn class_create_instance_reserves_zeroed_extra_bytes() {
+        let mut env = Environment::new_fake_for_test();
+        assert_eq!(
+            class_createInstance(&mut env, super::super::nil, 8),
+            super::super::nil
+        );
+        let class = env.objc.get_known_class("NSObject", &mut env.mem);
+        let object = class_createInstance(&mut env, class, 8);
+        let instance_size = env.objc.borrow::<ClassHostObject>(class).instance_size;
+        assert_eq!(super::super::ObjC::read_isa(object, &env.mem), class);
+        let tail = object.cast::<u8>() + instance_size;
+        assert_eq!(env.mem.bytes_at(tail, 8), &[0; 8]);
+        env.objc.dealloc_object(object, &mut env.mem);
     }
 }

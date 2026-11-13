@@ -42,6 +42,16 @@ pub const CLASSES: ClassExports = objc_classes! {
     autorelease(env, new)
 }
 
++ (id)timeZoneWithAbbreviation:(id)abbreviation {
+    if abbreviation == nil {
+        return nil;
+    }
+    match ns_string::to_rust_string(env, abbreviation).as_ref() {
+        "GMT" | "UTC" | "UT" => msg![env; this timeZoneWithName:abbreviation],
+        _ => nil,
+    }
+}
+
 + (id)timeZoneForSecondsFromGMT:(NSInteger)seconds {
     // Named like iOS's, e.g. "GMT+0130".
     let minutes = seconds.abs() / 60;

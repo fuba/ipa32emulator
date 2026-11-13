@@ -3,7 +3,7 @@
 //! See also [crate::frameworks::core_graphics::cg_geometry].
 
 use crate::abi::GuestArg;
-use crate::dyld::{export_c_func, FunctionExports};
+use crate::dyld::{export_c_func, ConstantExports, FunctionExports, HostConstant};
 use crate::frameworks::core_graphics::{CGFloat, CGPoint, CGRect, CGSize};
 use crate::frameworks::foundation::ns_string;
 use crate::objc::{autorelease, id};
@@ -17,6 +17,17 @@ pub struct UIEdgeInsets {
     pub bottom: CGFloat,
     pub right: CGFloat,
 }
+unsafe impl crate::mem::SafeRead for UIEdgeInsets {}
+
+pub const CONSTANTS: ConstantExports = &[(
+    "_UIEdgeInsetsZero",
+    HostConstant::Custom(|env| {
+        env.mem
+            .alloc_and_write(UIEdgeInsets::default())
+            .cast_const()
+            .cast()
+    }),
+)];
 impl GuestArg for UIEdgeInsets {
     const REG_COUNT: usize = 4;
 

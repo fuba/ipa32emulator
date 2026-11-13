@@ -332,6 +332,9 @@ pub(super) fn UIApplicationMain(
             env.objc.get_known_class("UIApplication", &mut env.mem)
         };
         let ui_application: id = msg![env; principal_class new];
+        if env.bundle.status_bar_hidden() {
+            let _: () = msg![env; ui_application setStatusBarHidden:true];
+        }
 
         let device_family = env.options.device_family;
         if let Some(main_nib_filename) = env.bundle.main_nib_filename(device_family) {
@@ -353,10 +356,6 @@ pub(super) fn UIApplicationMain(
                     env.bundle.main_nib_filename(device_family)
                 );
             }
-        }
-
-        if env.bundle.status_bar_hidden() {
-            let _: () = msg![env; ui_application setStatusBarHidden:true];
         }
 
         let delegate: id = msg![env; ui_application delegate];

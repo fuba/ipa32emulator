@@ -177,6 +177,14 @@ pub const CLASSES: ClassExports = objc_classes! {
     }
 
     let vc = env.objc.borrow::<UIViewHostObject>(view).view_controller;
+    if env.bundle.bundle_identifier() == "com.fireflame.DungeonRaid"
+        && env.objc.get_class_name(crate::objc::ObjC::read_isa(view, &env.mem)) == "EAGLView"
+    {
+        // The game draws a 320×480 scene into its NIB's status-bar-sized view.
+        // Give the game's root view the hidden-status-bar window's full bounds.
+        let frame: CGRect = msg![env; this bounds];
+        () = msg![env; view setFrame:frame];
+    }
     () = msg![env; vc viewWillAppear:false];
     () = msg_super![env; this addSubview:view];
     () = msg![env; vc viewDidAppear:false];

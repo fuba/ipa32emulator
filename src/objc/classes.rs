@@ -486,6 +486,7 @@ fn substitute_classes(
     mem: &Mem,
     class: Class,
     metaclass: Class,
+    use_guest_openfeint: bool,
 ) -> Option<(Box<FakeClass>, Box<FakeClass>)> {
     let class_t { data, .. } = mem.read(class.cast());
     let class_rw_t { name, .. } = mem.read(data);
@@ -504,7 +505,7 @@ fn substitute_classes(
         || name.starts_with("FB") // Facebook
         || name.starts_with("Flurry")
         || name.starts_with("Mobclix")
-        || name.starts_with("OpenFeint")
+        || (!use_guest_openfeint && name.starts_with("OpenFeint"))
         || name.starts_with("FLStat")
         || name.starts_with("Tapjoy"))
     {
@@ -672,7 +673,7 @@ impl ObjC {
 
     /// For use by [crate::dyld]: register all the classes from the application
     /// binary.
-    pub fn register_bin_classes(&mut self, bin: &MachO, mem: &mut Mem) {
+    pub fn register_bin_classes(&mut self, bin: &MachO, mem: &mut Mem, use_guest_openfeint: bool) {
         let Some(list) = bin.get_section("__objc_classlist") else {
             return;
         };
@@ -683,7 +684,9 @@ impl ObjC {
             let class = mem.read(base + i);
             let metaclass = Self::read_isa(class, mem);
 
-            let name = if let Some(fakes) = substitute_classes(mem, class, metaclass) {
+            let name = if let Some(fakes) =
+                substitute_classes(mem, class, metaclass, use_guest_openfeint)
+            {
                 let (class_host_object, metaclass_host_object) = fakes;
 
                 assert!(class_host_object.name == metaclass_host_object.name);
@@ -1273,6 +1276,17 @@ pub(super) fn class_getInstanceMethod(
     let ptr = env.mem.alloc_and_write(method);
     env.objc.method_handles.insert((class, name), ptr);
     ptr
+}
+
+pub(super) fn class_getClassMethod(
+    env: &mut Environment,
+    class: Class,
+    name: SEL,
+) -> MutPtr<method_t> {
+    if class == nil {
+        return Ptr::null();
+    }
+    class_getInstanceMethod(env, ObjC::read_isa(class, &env.mem), name)
 }
 
 pub(super) fn class_getMethodImplementation(env: &mut Environment, cls: Class, name: SEL) -> IMP {

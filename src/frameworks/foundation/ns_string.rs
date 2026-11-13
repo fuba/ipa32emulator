@@ -1440,6 +1440,27 @@ pub const CLASSES: ClassExports = objc_classes! {
     st[..cutoff].parse().unwrap_or(0)
 }
 
+- (i64)longLongValue {
+    let string = to_rust_string(env, this);
+    let string = string.trim_start();
+    let (negative, digits) = if let Some(rest) = string.strip_prefix('-') {
+        (true, rest)
+    } else {
+        (false, string.strip_prefix('+').unwrap_or(string))
+    };
+    let mut value = 0i64;
+    for digit in digits.bytes().take_while(u8::is_ascii_digit) {
+        let digit = i64::from(digit - b'0');
+        value = value.saturating_mul(10);
+        value = if negative {
+            value.saturating_sub(digit)
+        } else {
+            value.saturating_add(digit)
+        };
+    }
+    value
+}
+
 - (id)lowercaseString {
     // TODO: check if rust methods are consistent with ObjC one
     let str = to_rust_string(env, this).to_lowercase();

@@ -22,7 +22,8 @@ use crate::frameworks::core_animation::ca_animation::{
     get_animation_start_time, get_animation_stopped, get_group_animations, get_keyframes,
     get_transition, kCAAnimationCubic, kCAAnimationCubicPaced, kCAAnimationDiscrete,
     kCAAnimationPaced, kCAFillModeBackwards, kCAFillModeBoth, kCAFillModeForwards,
-    kCATransitionFade, CAMediaTimingFillMode, Keyframes,
+    kCATransitionFade, kCATransitionFromBottom, kCATransitionFromLeft, kCATransitionFromTop,
+    kCATransitionMoveIn, CAMediaTimingFillMode, Keyframes,
 };
 use crate::frameworks::core_animation::ca_layer::remove_anonymous_animation;
 use crate::frameworks::core_animation::ca_transform_3d::CATransform3D;
@@ -46,6 +47,15 @@ impl State {
         &mut self,
         env: &mut Environment,
         layer: id,
+    ) -> CALayerHostObject {
+        self.presentation_layer(env, layer, true)
+    }
+
+    pub fn presentation_layer(
+        &mut self,
+        env: &mut Environment,
+        layer: id,
+        record_callbacks: bool,
     ) -> CALayerHostObject {
         // Clone given layer
         let original = env.objc.borrow::<CALayerHostObject>(layer);
@@ -77,7 +87,7 @@ impl State {
             let start_time = get_animation_start_time(env, animation);
 
             if current_time >= begin_time {
-                if start_time.is_none() {
+                if record_callbacks && start_time.is_none() {
                     // Animation started but isn't marked as such
                     start_time.replace(current_time);
                     self.started_animations.push(animation);
@@ -122,7 +132,7 @@ impl State {
             if current_repeat >= effective_repeat_count {
                 // Animations kept after completion only stop once.
                 let stopped = get_animation_stopped(env, animation);
-                if !*stopped {
+                if record_callbacks && !*stopped {
                     *stopped = true;
                     let removed_on_completion: bool = msg![env; animation isRemovedOnCompletion];
                     self.finished_animations.push((
@@ -223,11 +233,31 @@ fn apply_animation(
     }
 
     if let Some((transition_type, start, end)) = get_transition(env, animation) {
+        let progress = (start + (end - start) * amount).clamp(0.0, 1.0);
+        if transition_type == kCATransitionMoveIn {
+            let subtype: id = msg![env; animation subtype];
+            let remaining = 1.0 - progress;
+            let width = presentation.bounds.size.width * remaining;
+            let height = presentation.bounds.size.height * remaining;
+            let subtype = if subtype == nil {
+                std::borrow::Cow::Borrowed("")
+            } else {
+                to_rust_string(env, subtype)
+            };
+            let offset = match subtype.as_ref() {
+                kCATransitionFromLeft => CGPoint { x: -width, y: 0.0 },
+                kCATransitionFromTop => CGPoint { x: 0.0, y: -height },
+                kCATransitionFromBottom => CGPoint { x: 0.0, y: height },
+                _ => CGPoint { x: width, y: 0.0 },
+            };
+            presentation.move_in_transition = Some((animation, offset));
+            return;
+        }
         if transition_type != kCATransitionFade {
             unimplemented!("CATransition type {:?} isn't implemented", transition_type);
         }
         // The compositor fades the old picture out over the new one.
-        presentation.fade_transition = Some((animation, start + (end - start) * amount));
+        presentation.fade_transition = Some((animation, progress));
         return;
     }
 

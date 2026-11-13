@@ -13,6 +13,8 @@ use crate::objc;
 /// searches through.
 pub const DYLIB_LIST: &[&super::HostDylib] = &[
     &libc::DYLIB,
+    #[cfg(target_vendor = "apple")]
+    &libc::icu::DYLIB,
     &objc::DYLIB,
     &crate::environment::app_picker::DYLIB, // Not a real library; special internal classes.
     &frameworks::audio_toolbox::DYLIB,
@@ -30,6 +32,7 @@ pub const DYLIB_LIST: &[&super::HostDylib] = &[
     &frameworks::message_ui::DYLIB,
     &frameworks::openal::DYLIB,
     &frameworks::opengles::DYLIB,
+    &frameworks::security::DYLIB,
     &frameworks::store_kit::DYLIB,
     &frameworks::system_configuration::DYLIB,
     &frameworks::uikit::DYLIB,

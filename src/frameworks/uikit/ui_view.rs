@@ -52,6 +52,8 @@ use crate::Environment;
 // CATransaction created by beginAnimations, set by the various setAnimation*
 // methods, and later read by commitAnimations.
 const touchHLE_kCATransactionAnimationId: &str = "_touchHLE_kCATransactionAnimationId";
+pub(crate) const ANIMATION_BEGINS_FROM_CURRENT_STATE: &str =
+    "_touchHLE_kCATransactionBeginsFromCurrentState";
 const touchHLE_kCATransactionAnimationContext: &str = "_touchHLE_kCATransactionAnimationContext";
 const touchHLE_kCATransactionAnimationDelay: &str = "_touchHLE_kCATransactionAnimationDelay";
 const touchHLE_kCATransactionAnimationRepeatCount: &str =
@@ -247,6 +249,12 @@ pub const CLASSES: ClassExports = objc_classes! {
 + (())setAnimationDuration:(NSTimeInterval)duration {
     log_dbg!("[UIView setAnimationDuration:{:?}]", duration);
     () = msg_class![env; CATransaction setAnimationDuration:duration];
+}
+
++ (())setAnimationBeginsFromCurrentState:(bool)enabled {
+    let value: id = msg_class![env; NSNumber numberWithBool:enabled];
+    let key = get_static_str(env, ANIMATION_BEGINS_FROM_CURRENT_STATE);
+    msg_class![env; CATransaction setValue:value forKey:key]
 }
 
 + (())setAnimationDelay:(NSTimeInterval)delay {

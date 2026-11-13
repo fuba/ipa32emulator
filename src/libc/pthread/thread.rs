@@ -15,7 +15,7 @@ use std::collections::HashMap;
 #[derive(Default)]
 pub struct State {
     threads: HashMap<pthread_t, ThreadHostObject>,
-    main_thread_object_created: bool,
+    main_thread_object: Option<pthread_t>,
 }
 impl State {
     fn get(env: &mut Environment) -> &mut Self {
@@ -227,13 +227,19 @@ pub fn pthread_create(
 
     let thread_id = env.new_thread(start_routine, user_data, attr.stacksize);
 
+    let opaque = register_thread(env, thread_id, attr);
+    env.mem.write(thread, opaque);
+
+    log_dbg!("pthread_create({:?}, {:?}, {:?}, {:?}) => 0 (success), created new pthread_t {:?} (thread ID: {})", thread, attr, start_routine, user_data, opaque, thread_id);
+
+    0 // success
+}
+
+fn register_thread(env: &mut Environment, thread_id: ThreadId, attr: pthread_attr_t) -> pthread_t {
     let opaque = env.mem.alloc_and_write(OpaqueThread {
         magic: MAGIC_THREAD,
     });
-    env.mem.write(thread, opaque);
-
-    assert!(!State::get(env).threads.contains_key(&opaque));
-    State::get(env).threads.insert(
+    let old = State::get(env).threads.insert(
         opaque,
         ThreadHostObject {
             thread_id,
@@ -242,9 +248,8 @@ pub fn pthread_create(
         },
     );
 
-    log_dbg!("pthread_create({:?}, {:?}, {:?}, {:?}) => 0 (success), created new pthread_t {:?} (thread ID: {})", thread, attr, start_routine, user_data, opaque, thread_id);
-
-    0 // success
+    assert!(old.is_none());
+    opaque
 }
 
 fn pthread_equal(env: &mut Environment, thread1: pthread_t, thread2: pthread_t) -> i32 {
@@ -265,39 +270,33 @@ pub fn thread_id_for_pthread(env: &mut Environment, thread: pthread_t) -> Option
         .map(|host_object| host_object.thread_id)
 }
 
+pub(crate) fn pthread_main(env: &mut Environment) -> pthread_t {
+    if let Some(thread) = State::get(env).main_thread_object {
+        return thread;
+    }
+    let thread = register_thread(env, 0, DEFAULT_ATTR);
+    State::get(env).main_thread_object = Some(thread);
+    thread
+}
+
 pub fn pthread_self(env: &mut Environment) -> pthread_t {
     let current_thread = env.current_thread;
-
-    // The main thread is a special case since it's not created via pthreads,
-    // so we need to create its object on-demand.
-    if current_thread == 0 && !State::get(env).main_thread_object_created {
-        State::get(env).main_thread_object_created = true;
-
-        let opaque = env.mem.alloc_and_write(OpaqueThread {
-            magic: MAGIC_THREAD,
-        });
-
-        assert!(!State::get(env).threads.contains_key(&opaque));
-        State::get(env).threads.insert(
-            opaque,
-            ThreadHostObject {
-                thread_id: 0,
-                joined_by: None,
-                attr: DEFAULT_ATTR,
-            },
-        );
-        log_dbg!(
-            "pthread_self: created pthread object {:?} for main thread",
-            opaque
-        );
+    if current_thread == 0 {
+        return pthread_main(env);
     }
-
-    let (&ptr, _) = State::get(env)
+    if let Some((&thread, _)) = State::get(env)
         .threads
         .iter()
-        .find(|&(_ptr, host_obj)| host_obj.thread_id == current_thread)
-        .unwrap();
-    ptr
+        .find(|(_, host_obj)| host_obj.thread_id == current_thread)
+    {
+        return thread;
+    }
+    // Foundation also creates internal worker threads directly.
+    let attr = pthread_attr_t {
+        detachstate: PTHREAD_CREATE_DETACHED,
+        ..DEFAULT_ATTR
+    };
+    register_thread(env, current_thread, attr)
 }
 
 fn pthread_exit(env: &mut Environment, value_ptr: MutVoidPtr) {

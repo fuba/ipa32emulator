@@ -9,7 +9,6 @@ use crate::abi::GuestArg;
 use crate::dyld::{export_c_func, FunctionExports};
 use crate::frameworks::core_foundation::{CFOptionFlags, CFTypeRef};
 use crate::frameworks::foundation::NSTimeInterval;
-use crate::libc::time::{time_t, timestamp_to_calendar_date};
 use crate::mem::SafeRead;
 use crate::objc::nil;
 use crate::{impl_GuestRet_for_large_struct, Environment};
@@ -119,20 +118,22 @@ pub fn CFAbsoluteTimeGetGregorianDate(
     tz: CFTimeZoneRef,
 ) -> CFGregorianDate {
     assert!(tz.is_null());
-    let time64 = apple_epoch()
-        .add(Duration::from_secs_f64(at))
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let time = time64 as time_t;
-    let tm = timestamp_to_calendar_date(time);
+    absolute_time_to_gregorian_date(at)
+}
+
+fn absolute_time_to_gregorian_date(at: CFAbsoluteTime) -> CFGregorianDate {
+    let days = (at / DAY_SECONDS).floor();
+    let (year, month, day) = date_from_days(days as i64);
+    let time = at - days * DAY_SECONDS;
+    let hours = (time / 3600.0).floor();
+    let minutes = ((time - hours * 3600.0) / 60.0).floor();
     CFGregorianDate {
-        year: 1900 + tm.tm_year,
-        month: (tm.tm_mon + 1) as i8,
-        day: tm.tm_mday as i8,
-        hours: tm.tm_hour as i8,
-        minutes: tm.tm_min as i8,
-        seconds: tm.tm_sec.into(),
+        year: year as i32,
+        month: month as i8,
+        day: day as i8,
+        hours: hours as i8,
+        minutes: minutes as i8,
+        seconds: time - hours * 3600.0 - minutes * 60.0,
     }
 }
 
@@ -182,7 +183,7 @@ fn CFGregorianDateGetAbsoluteTime(
     gregorian_date_to_absolute_time(date)
 }
 
-fn gregorian_date_to_absolute_time(date: CFGregorianDate) -> CFAbsoluteTime {
+pub(crate) fn gregorian_date_to_absolute_time(date: CFGregorianDate) -> CFAbsoluteTime {
     let CFGregorianDate {
         year,
         month,
@@ -362,6 +363,32 @@ mod tests {
         let mut out = [0; 4];
         CFGregorianDate::from_regs(&regs).to_regs(&mut out);
         assert_eq!(out, regs);
+    }
+
+    #[test]
+    fn gregorian_date_before_reference_date() {
+        assert_eq!(
+            absolute_time_to_gregorian_date(-0.5),
+            CFGregorianDate {
+                year: 2000,
+                month: 12,
+                day: 31,
+                hours: 23,
+                minutes: 59,
+                seconds: 59.5,
+            }
+        );
+        assert_eq!(
+            absolute_time_to_gregorian_date(at(2057, 10, 13)),
+            CFGregorianDate {
+                year: 2057,
+                month: 10,
+                day: 13,
+                hours: 0,
+                minutes: 0,
+                seconds: 0.0,
+            }
+        );
     }
 
     #[test]

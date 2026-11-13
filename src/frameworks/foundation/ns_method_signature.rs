@@ -9,10 +9,11 @@
 //! - [Type encodings](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100)
 //! - [Method signatures](https://gcc.gnu.org/onlinedocs/gcc-4.9.0/gcc/Method-signatures.html)
 
+use crate::dyld::{export_c_func, FunctionExports};
 use crate::environment::Environment;
 use crate::frameworks::foundation::NSUInteger;
 use crate::libc::string::strncpy;
-use crate::mem::{ConstPtr, GuestUSize};
+use crate::mem::{ConstPtr, GuestUSize, MutPtr};
 use crate::objc::{autorelease, id, objc_classes, ClassExports, HostObject};
 
 struct NSMethodSignatureHostObject {
@@ -47,6 +48,11 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (ConstPtr<u8>)methodReturnType {
     env.objc.borrow::<NSMethodSignatureHostObject>(this).return_type
+}
+
+- (NSUInteger)methodReturnLength {
+    let ty = env.objc.borrow::<NSMethodSignatureHostObject>(this).return_type;
+    type_layout(env.mem.cstr_at(ty), 0).unwrap().1
 }
 
 - (())dealloc {
@@ -117,5 +123,112 @@ fn parse_signature_inner(env: &mut Environment, curr: ConstPtr<u8>) -> (GuestUSi
             (idx, 1, size)
         }
         _ => unimplemented!("parse_signature_inner: {}", c as char),
+    }
+}
+
+fn NSGetSizeAndAlignment(
+    env: &mut Environment,
+    encoding: ConstPtr<u8>,
+    size: MutPtr<NSUInteger>,
+    alignment: MutPtr<NSUInteger>,
+) -> ConstPtr<u8> {
+    let (end, bytes, align) = type_layout(env.mem.cstr_at(encoding), 0).unwrap_or_else(|| {
+        panic!(
+            "Unsupported Objective-C type encoding {:?}",
+            env.mem.cstr_at_utf8(encoding)
+        )
+    });
+    if !size.is_null() {
+        env.mem.write(size, bytes);
+    }
+    if !alignment.is_null() {
+        env.mem.write(alignment, align);
+    }
+    encoding + end as u32
+}
+
+fn type_layout(mut encoding: &[u8], depth: u32) -> Option<(usize, u32, u32)> {
+    if depth > 64 {
+        return None;
+    }
+    let original_length = encoding.len();
+    while encoding
+        .first()
+        .is_some_and(|code| b"rnNoORV".contains(code))
+    {
+        encoding = &encoding[1..];
+    }
+    let qualifiers = original_length - encoding.len();
+    let (&code, tail) = encoding.split_first()?;
+    let (len, size, align) = match code {
+        b'v' => (1, 0, 1),
+        b'B' | b'c' | b'C' => (1, 1, 1),
+        b's' | b'S' => (1, 2, 2),
+        b'i' | b'I' | b'l' | b'L' | b'f' | b'*' | b'#' | b':' => (1, 4, 4),
+        b'q' | b'Q' | b'd' => (1, 8, 8),
+        b'@' if tail.first() == Some(&b'?') => (2, 4, 4),
+        b'@' if tail.first() == Some(&b'"') => {
+            (3 + tail[1..].iter().position(|&c| c == b'"')?, 4, 4)
+        }
+        b'@' => (1, 4, 4),
+        b'^' if tail.first() == Some(&b'?') => (2, 4, 4),
+        b'^' => (1 + type_layout(tail, depth + 1)?.0, 4, 4),
+        b'[' => {
+            let count_len = tail.iter().take_while(|c| c.is_ascii_digit()).count();
+            let count: u32 = std::str::from_utf8(&tail[..count_len]).ok()?.parse().ok()?;
+            let (len, size, align) = type_layout(&tail[count_len..], depth + 1)?;
+            if tail.get(count_len + len) != Some(&b']') {
+                return None;
+            }
+            (2 + count_len + len, size.checked_mul(count)?, align)
+        }
+        b'{' | b'(' => {
+            let close = if code == b'{' { b'}' } else { b')' };
+            let separator = tail.iter().position(|&c| c == b'=' || c == close)?;
+            let mut index = separator + 1;
+            let mut size: u32 = 0;
+            let mut alignment = 1;
+            if tail[separator] == b'=' {
+                while *tail.get(index)? != close {
+                    if tail[index] == b'"' {
+                        index += 2 + tail[index + 1..].iter().position(|&c| c == b'"')?;
+                    }
+                    let (len, field_size, field_align) = type_layout(&tail[index..], depth + 1)?;
+                    // The 32-bit Darwin ARM aggregate ABI caps member alignment at four.
+                    let field_align = field_align.min(4);
+                    size = if code == b'{' {
+                        size.checked_next_multiple_of(field_align)?
+                            .checked_add(field_size)?
+                    } else {
+                        size.max(field_size)
+                    };
+                    alignment = alignment.max(field_align);
+                    index += len;
+                }
+                index += 1;
+            }
+            (
+                1 + index,
+                size.checked_next_multiple_of(alignment)?,
+                alignment,
+            )
+        }
+        _ => return None,
+    };
+    Some((qualifiers + len, size, align))
+}
+
+pub const FUNCTIONS: FunctionExports = &[export_c_func!(NSGetSizeAndAlignment(_, _, _))];
+
+#[cfg(test)]
+mod tests {
+    use super::type_layout;
+
+    #[test]
+    fn uses_guest_pointer_and_aggregate_alignment() {
+        assert_eq!(type_layout(b"r^@12", 0), Some((3, 4, 4)));
+        assert_eq!(type_layout(b"d", 0), Some((1, 8, 8)));
+        assert_eq!(type_layout(b"{S=cd}", 0), Some((6, 12, 4)));
+        assert_eq!(type_layout(b"[3{S=cd}]", 0), Some((9, 36, 4)));
     }
 }
