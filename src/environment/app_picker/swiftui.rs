@@ -76,12 +76,13 @@ pub fn app_picker(
         .map(|(app, icon)| {
             format!(
                 "{{\"name\":{},\"iconWidth\":{},\"iconHeight\":{},\"hasIcon\":{},\
-                 \"crashed\":{}}}",
+                 \"crashed\":{},\"dungeonRaidCheckpoints\":{}}}",
                 json_string(&app.display_name),
                 icon.dimensions().0,
                 icon.dimensions().1,
                 app.icon.is_some(),
                 app.crashed,
+                app.dungeon_raid_checkpoints,
             )
         })
         .collect();

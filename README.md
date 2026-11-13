@@ -20,7 +20,7 @@ The macOS development build uses `cargo build --locked --release`. Other platfor
 iDared 32bit © 2026 iDared 32bit project contributors.
 touchHLE © 2023–2026 touchHLE project contributors.
 
-Inherited source files and modifications to MPL-covered files remain under the [Mozilla Public License 2.0](LICENSE). The standalone ICU and guest Security framework implementations, the fork’s original artwork, and its artwork generation script are covered by the [MIT license](src/licenses/MIT-IPA32-Emulator.txt). Third-party components retain their own licenses and notices, including those in [dylibs/](dylibs/) and [vendor/mgba_arm/](vendor/mgba_arm/).
+Inherited source files and modifications to MPL-covered files remain under the [Mozilla Public License 2.0](LICENSE). The standalone ICU and guest Security framework implementations, the Dungeon Raid checkpoint feature’s Swift files, the fork’s original artwork, and its artwork generation script are covered by the [MIT license](src/licenses/MIT-IPA32-Emulator.txt). Third-party components retain their own licenses and notices, including those in [dylibs/](dylibs/) and [vendor/mgba_arm/](vendor/mgba_arm/).
 
 ### Name, logo and app icon
 

@@ -51,7 +51,7 @@ impl Cache {
 
     /// The name and icon saved for a game, if it hasn't changed since, and
     /// whether it crashed the last time it was played.
-    pub fn get(&mut self, app_path: &Path) -> Option<(String, Option<Image>, bool)> {
+    pub fn get(&mut self, app_path: &Path) -> Option<(String, Option<Image>, bool, bool)> {
         let key = key(app_path)?;
         let stamp = stamp(app_path)?;
         let entry = self.old.get(&key)?.as_dictionary()?;
@@ -64,8 +64,10 @@ impl Cache {
             None => None,
         };
         let crashed = entry.get("Crashed").and_then(Value::as_boolean) == Some(true);
+        // An older entry must be regenerated to identify Dungeon Raid.
+        let dungeon_raid_checkpoints = entry.get("DungeonRaidCheckpoints")?.as_boolean()?;
         self.new.insert(key, Value::Dictionary(entry.clone()));
-        Some((name, icon, crashed))
+        Some((name, icon, crashed, dungeon_raid_checkpoints))
     }
 
     /// Notes whether a game crashed the last time it was played. Only kept
@@ -84,13 +86,23 @@ impl Cache {
     }
 
     /// Saves a game's name and icon (none if it couldn't be loaded).
-    pub fn insert(&mut self, app_path: &Path, name: &str, icon: Option<&Image>) {
+    pub fn insert(
+        &mut self,
+        app_path: &Path,
+        name: &str,
+        icon: Option<&Image>,
+        dungeon_raid_checkpoints: bool,
+    ) {
         let (Some(key), Some(stamp)) = (key(app_path), stamp(app_path)) else {
             return;
         };
         let mut entry = Dictionary::new();
         entry.insert("Stamp".to_string(), Value::String(stamp));
         entry.insert("Name".to_string(), Value::String(name.to_string()));
+        entry.insert(
+            "DungeonRaidCheckpoints".to_string(),
+            Value::Boolean(dungeon_raid_checkpoints),
+        );
         if let Some(icon) = icon {
             entry.insert("Icon".to_string(), Value::Data(icon.to_png()));
         }
@@ -165,14 +177,15 @@ mod tests {
 
         let mut cache = Cache::load(&dir, "en");
         assert!(cache.get(&game).is_none());
-        cache.insert(&game, "Game", Some(&icon));
-        cache.insert(&dir.join("Other.ipa"), "Other", None); // no such file
+        cache.insert(&game, "Game", Some(&icon), true);
+        cache.insert(&dir.join("Other.ipa"), "Other", None, false); // no such file
         cache.save();
 
         let mut cache = Cache::load(&dir, "en");
-        let (name, icon, crashed) = cache.get(&game).unwrap();
+        let (name, icon, crashed, dungeon_raid_checkpoints) = cache.get(&game).unwrap();
         assert_eq!(name, "Game");
         assert!(!crashed);
+        assert!(dungeon_raid_checkpoints);
         let icon = icon.unwrap();
         assert_eq!(icon.dimensions(), (2, 2));
         assert_eq!(icon.pixels(), &pixels[..]);
@@ -188,7 +201,7 @@ mod tests {
         let game = dir.join("Game.ipa");
         std::fs::write(&game, b"game").unwrap();
         let mut cache = Cache::load(&dir, "");
-        cache.insert(&game, "Game", None);
+        cache.insert(&game, "Game", None, false);
         cache.save();
 
         let mut cache = Cache::load(&dir, "");
@@ -218,8 +231,8 @@ mod tests {
         std::fs::write(&game, b"game").unwrap();
         std::fs::write(&gone, b"gone").unwrap();
         let mut cache = Cache::load(&dir, "");
-        cache.insert(&game, "Game", None);
-        cache.insert(&gone, "Gone", None);
+        cache.insert(&game, "Game", None, false);
+        cache.insert(&gone, "Gone", None, false);
         cache.save();
 
         // A changed game isn't used; one that's gone is dropped when saved.
@@ -227,7 +240,7 @@ mod tests {
         std::fs::remove_file(&gone).unwrap();
         let mut cache = Cache::load(&dir, "");
         assert!(cache.get(&game).is_none());
-        cache.insert(&game, "Game 2", None);
+        cache.insert(&game, "Game 2", None, false);
         cache.save();
         std::fs::write(&gone, b"gone").unwrap();
         let mut cache = Cache::load(&dir, "");
