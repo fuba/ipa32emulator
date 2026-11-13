@@ -2142,7 +2142,7 @@ pub fn show_error_messagebox(window: Option<&Window>, error_message: &str) {
     // On iOS, the app picker shows it instead, with an OK button, so the
     // game always returns there.
     if cfg!(target_os = "ios") {
-        let message = format!("iDared 32bit crashed: {error_message}");
+        let message = format!("IPA32 Emulator crashed: {error_message}");
         *START_ERROR.lock().unwrap() = Some(message);
         RETURN_TO_APP_PICKER_AFTER_ERROR.store(true, std::sync::atomic::Ordering::Relaxed);
         return;
@@ -2165,8 +2165,8 @@ pub fn show_error_messagebox(window: Option<&Window>, error_message: &str) {
     let Ok(clicked_button) = messagebox::show_message_box(
         messagebox::MessageBoxFlag::ERROR,
         &mbox,
-        "iDared 32bit crashed!",
-        &format!("iDared 32bit crashed with the following error: {error_message}"),
+        "IPA32 Emulator crashed!",
+        &format!("IPA32 Emulator crashed with the following error: {error_message}"),
         window.map(|win| &win.window),
         None,
     ) else {

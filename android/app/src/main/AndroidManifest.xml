@@ -64,6 +64,7 @@
         android:appCategory="game"
         android:hardwareAccelerated="true"
         android:icon="${icon}"
+        android:roundIcon="${icon}"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
 

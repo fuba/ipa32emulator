@@ -4,9 +4,9 @@ This branch is based on iDared 32bit v1.5.2, commit `33c34bc138473050787b9518d6e
 
 Use the `iDared 32bit` scheme in `iphone/iDared32bit.xcodeproj`. The project was built with Rust 1.93.0, Xcode's iPhoneOS 27.2 SDK, and `CMAKE_POLICY_VERSION_MINIMUM=3.5`. Check out the pinned submodules with `git submodule update --init --recursive`. Set the signing team and bundle identifier for the destination device through Xcode or build settings.
 
-Copy a locally prepared Dungeon Raid 1.3.4 IPA to the app's `Games` folder in Files. Open iDared 32bit and select the game. For device testing, `devicectl device process launch` can pass `--launch-ipa` and the filename after `--`. The original App Store package requires local preparation before import. Game files and Apple account data are outside this repository.
+Copy a locally prepared Dungeon Raid 1.3.4 IPA to the app's `Games` folder in Files. Open IPA32 Emulator and select the game. For device testing, `devicectl device process launch` can pass `--launch-ipa` and the filename after `--`. The emulator loads unencrypted guest executables. Game files and Apple account data are outside this repository.
 
-The new standalone `icu.rs` and `security.rs` implementations are available under MIT. Existing upstream files retain their license notices. The ICU wrapper uses `libicucore` from the Apple SDK on macOS and iOS. [ICU C regex reference](https://unicode-org.github.io/icu-docs/apidoc/released/icu4c/uregex_8h.html)
+The new standalone `icu.rs` and `security.rs` implementations are available under the [MIT license](../src/licenses/MIT-IPA32-Emulator.txt). Existing upstream files retain their license notices. The ICU wrapper uses `libicucore` from the Apple SDK on macOS and iOS. [ICU C regex reference](https://unicode-org.github.io/icu-docs/apidoc/released/icu4c/uregex_8h.html)
 
 For a new game, choose **New Game**, enter a name or tap **Random**, choose a difficulty, and tap **Begin** at the bottom center. Tap **Begin** again on the introductory story. On the board, drag through three or more adjacent matching tiles. The app picker reopens from the circular exit button beneath the emulated screen.
 

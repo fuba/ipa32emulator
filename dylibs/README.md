@@ -2,6 +2,21 @@
 
 These are impractical to reimplement, but they are Free Software.
 
+## Local build prerequisites
+
+To build the iOS target or run the library test suite, place the two GPL-licensed
+guest binaries below in this directory. The fork's working tree leaves them
+out. A full Git clone can recover the original files for local builds from the
+upstream v1.5.2 commit in its history:
+
+```sh
+upstream_commit=33c34bc138473050787b9518d6e07e23b18c0c4e
+git show "$upstream_commit:dylibs/libgcc_s.1.dylib" > dylibs/libgcc_s.1.dylib
+git show "$upstream_commit:dylibs/libstdc++.6.0.9.dylib" > dylibs/libstdc++.6.0.9.dylib
+```
+
+The corresponding source and license details follow.
+
 ## `libstdc++.6.0.9.dylib`
 
 * Alias: `libstdc++.6.dylib`

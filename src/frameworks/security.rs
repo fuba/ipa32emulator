@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// Copyright (c) 2026 IPA32 Emulator contributors
 //! Internet-password storage isolated to the emulated application's filesystem.
 
 use crate::dyld::{export_c_func, HostConstant, HostDylib};

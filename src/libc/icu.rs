@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// Copyright (c) 2026 IPA32 Emulator contributors
 //! Bridges the legacy ICU regex ABI to the Apple platform's ICU.
 
 use crate::dyld::{export_c_func, HostDylib};

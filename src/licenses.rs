@@ -5,59 +5,41 @@
  */
 //! Prints copyright, authorship and license information.
 
-const IDARED_FORK_NOTICE: &str = "
-iDared 32bit is a fork of touchHLE, with a few differences in this build:
+const FORK_NOTICE: &str = "
+IPA32 Emulator is an independent fork of iDared 32bit, which is based on
+touchHLE. It inherits the native iOS host, the ARM interpreter derived from
+mGBA, and the SDL audio backend.
 
-  - CPU emulation uses an ARM interpreter derived from mGBA's (replaces
-    Dynarmic JIT)
-  - The guest-facing OpenAL uses SDL audio (replaces OpenAL Soft library)
-
-The maintainer (@apexad) contributed to touchHLE until this App Store
-release, which the touchHLE project did not want, and is no longer part of
-that project. This build includes changes that are not in touchHLE.
-iDared 32bit is not affiliated with or endorsed by the touchHLE project.
-Please don't ask touchHLE for support with iDared 32bit, or submit results
-to touchHLE's compatibility database. Contact support@idared32bit-emu.com
-instead.
-
-Source code for iDared 32bit, including the version of touchHLE it is based
-on, is available at <https://github.com/iDared32bit-emu/iDared32bit>.
-
-The copyright, authorship and license information below applies to iDared 32bit
-in full.
+Source and issue tracker: <https://github.com/fuba/ipa32emulator>.
+Upstream source: <https://github.com/iDared32bit-emu/iDared32bit>.
 ";
 
 const MAIN_COPYRIGHT: &str = "
+IPA32 Emulator © 2026 IPA32 Emulator contributors.
+
 iDared 32bit © 2026 iDared 32bit project contributors.
 
 touchHLE © 2023–2026 touchHLE project contributors.
 ";
 
 const MAIN_LICENSE: &str = "
-This program, iDared 32bit, is licensed under the Mozilla Public License,
-version 2.0 (MPL-2.0). You can obtain a copy of the license at
-<https://mozilla.org/MPL/2.0/>, and the source code at the address given
-above.
+The inherited emulator source and changes to MPL-covered files are licensed
+under the Mozilla Public License, version 2.0 (MPL-2.0). The license is at
+<https://mozilla.org/MPL/2.0/>. The upstream iDared 32bit name, logo and app
+icon are © 2026 Alex Martin, all rights reserved.
 
-The iDared 32bit name, logo and app icon are © 2026 Alex Martin, all rights
-reserved. They are not licensed under the MPL-2.0 or any other open-source
-license.
-
-This program is not licensed under the GNU General Public License (GPL). Its
-own code, and every library it is built from, is licensed under MPL-2.0 or
-under more permissive terms, as listed below.
+The standalone ICU and guest Security framework modules and this fork's
+artwork are licensed under MIT (see below).
 
 Under the MPL-2.0, this program is provided on an \"as is\" basis, without
 warranty of any kind; see sections 6 and 7 of the license.
 
-Separately from the program itself, it carries copies of the libgcc and
-libstdc++ libraries from Apple's iPhone OS SDK, which apps running inside the
-emulated device link against. On iOS, these copies are embedded in the app's
-executable file, as data. They are separate programs, licensed under the GNU
-GPL version 2 or later. They run only inside the emulated device, are not
-linked with iDared 32bit, and do not change its license. Their license notices,
-and a written offer for their source code, are included with this program.
+The libgcc and libstdc++ libraries are separate guest programs under GNU GPL
+version 2 or later. Locally supplied copies are embedded as data on iOS and
+run inside the emulated device. Their license notices follow.
 ";
+
+const FORK_MIT_LICENSE: &str = include_str!("licenses/MIT-IPA32-Emulator.txt");
 
 // See android/app/src/main/java/org/alexmartin/idared32bit/DocumentsProvider.kt
 #[cfg(target_os = "android")]
@@ -123,13 +105,13 @@ its copyright holders.
 ";
 
 const MGBA_DESCRIPTION: &str = "
-iDared 32bit, and therefore this executable, incorporates a modified copy of
+IPA32 Emulator incorporates a modified copy of
 the ARM interpreter from the mGBA Game Boy Advance emulator (in
 vendor/mgba_arm/), which this build extends from ARMv4T to ARMv7s.
 mGBA is copyright © 2013–2024 Jeffrey Pfau, and is available under the Mozilla
 Public License, version 2.0 -- the same license as the rest of this program.
-The modified source files are published with the rest of iDared 32bit's source
-code (see above). iDared 32bit is not affiliated with or endorsed by the mGBA
+The modified source files are published with the rest of the emulator's source
+code (see above). IPA32 Emulator is not affiliated with or endorsed by the mGBA
 project.
 ";
 
@@ -185,62 +167,52 @@ consult the respective directories for more information.
 // When resource files are bundled with touchHLE in such a way that only
 // touchHLE can read the license file, use these notices.
 
-// Apple's own offer is reproduced below for provenance, but GPLv2 3(c) only
-// allows passing it along for noncommercial distribution, so this build makes
-// its own 3(b) offer.
 const INTERNAL_FSF_DYLIBS_DESCRIPTION: &str = "
-This distribution of iDared 32bit includes binaries for the libgcc and libstdc++
+This build includes locally supplied binaries for the libgcc and libstdc++
 libraries from the Free Software Foundation, as originally distributed by Apple:
 ";
 
 const INTERNAL_FSF_DYLIBS_GPL_HEADING: &str = "
 The following license applies only to the libgcc and libstdc++ libraries
-described above. It does not apply to iDared 32bit, which is licensed under
-the MPL-2.0.
+described above.
 ";
 
-const INTERNAL_FSF_DYLIBS_OFFER: &str = "
-Written offer, valid for three years from the date you received this
-distribution: on request, the maintainer of iDared 32bit will give any third
-party a complete machine-readable copy of the corresponding source code for
-the libgcc and libstdc++ binaries included here, for no more than the cost of
-performing the distribution. That source is also published at:
+const INTERNAL_FSF_DYLIBS_SOURCE: &str = "
+Apple publishes the corresponding source for these versions at:
 
-  libgcc    <https://github.com/iDared32bit-emu/gcc> (tag gcc-5664)
-  libstdc++ <https://github.com/iDared32bit-emu/libstdcxx> (tag libstdcxx-39)
-
-Requests: admin@idared32bit-emu.com
+  <https://github.com/apple-oss-distributions/gcc/tree/gcc-5664>
+  <https://github.com/apple-oss-distributions/libstdcxx/tree/libstdcxx-39>
 ";
 
 const INTERNAL_ZLIB_DYLIB_DESCRIPTION: &str = "
-This distribution of iDared 32bit includes binaries for zlib (libz), available under
+This build of IPA32 Emulator includes binaries for zlib (libz), available under
 the following license:
 ";
 
 // We have a COPYING file for SQLite, but as the main source and resulting
 // binary are simply Public Domain, we can save some space here.
 const INTERNAL_SQLITE3_DYLIB_DESCRIPTION: &str = "
-This distribution of iDared 32bit includes binaries for SQLite (libsqlite3),
+This build of IPA32 Emulator includes binaries for SQLite (libsqlite3),
 available under Public Domain.
 ";
 
 const INTERNAL_XML2_DYLIB_DESCRIPTION: &str = "
-This distribution of iDared 32bit includes binaries for libxml2, available under
+This build of IPA32 Emulator includes binaries for libxml2, available under
 the following license:
 ";
 
 const INTERNAL_LIBERATION_FONTS_DESCRIPTION: &str = "
-This distribution of iDared 32bit includes Liberation fonts (Sans, Serif and
+This build of IPA32 Emulator includes Liberation fonts (Sans, Serif and
 Mono), available under the following license:
 ";
 
 const INTERNAL_NOTO_FONTS_DESCRIPTION: &str = "
-This distribution of iDared 32bit includes Noto Sans CJK fonts, available under the
+This build of IPA32 Emulator includes Noto Sans CJK fonts, available under the
 following license:
 ";
 
 const INTERNAL_CAVEATBRUSH_FONTS_DESCRIPTION: &str = "
-This distribution of iDared 32bit includes Caveat Brush fonts, available under the
+This build of IPA32 Emulator includes Caveat Brush fonts, available under the
 following license:
 ";
 
@@ -297,7 +269,7 @@ fn divider(out: &mut String) -> Result<(), std::fmt::Error> {
 
 fn print(out: &mut String, resources_are_external_files: bool) -> Result<(), std::fmt::Error> {
     use std::fmt::Write;
-    writeln!(out, "{IDARED_FORK_NOTICE}")?;
+    writeln!(out, "{FORK_NOTICE}")?;
     divider(out)?;
     if resources_are_external_files {
         writeln!(out, "{EXTERNAL_FILES_CAVEAT}")?;
@@ -306,6 +278,7 @@ fn print(out: &mut String, resources_are_external_files: bool) -> Result<(), std
     writeln!(out, "{MAIN_COPYRIGHT}")?;
     divider(out)?;
     writeln!(out, "{MAIN_LICENSE}")?;
+    writeln!(out, "{}", FORK_MIT_LICENSE.trim_end())?;
     divider(out)?;
     #[cfg(target_os = "android")]
     {
@@ -420,7 +393,7 @@ fn print(out: &mut String, resources_are_external_files: bool) -> Result<(), std
                 .replace("\n> ", "\n")
                 .trim_start()
         )?;
-        writeln!(out, "{INTERNAL_FSF_DYLIBS_OFFER}")?;
+        writeln!(out, "{INTERNAL_FSF_DYLIBS_SOURCE}")?;
         writeln!(out, "{INTERNAL_FSF_DYLIBS_GPL_HEADING}")?;
         // The GPL's full text, as plain text (it's quoted twice, in bold).
         let readme = read_bundled_file(&format!("{}/README.md", crate::paths::DYLIBS_DIR));
@@ -500,7 +473,7 @@ fn test_internal_files_license_text() {
     // libraries. read_bundled_file() checks iOS has each file embedded.
     let mut text = String::new();
     print(&mut text, /* resources_are_external_files: */ false).unwrap();
-    assert!(text.contains(INTERNAL_FSF_DYLIBS_OFFER));
+    assert!(text.contains(INTERNAL_FSF_DYLIBS_SOURCE));
     // The GPL's full text, not just the notice.
     assert!(text.contains(INTERNAL_FSF_DYLIBS_GPL_HEADING));
     assert!(text.contains("END OF TERMS AND CONDITIONS"));

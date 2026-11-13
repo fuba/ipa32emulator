@@ -416,7 +416,7 @@ const CLASSES: ClassExports = objc_classes! {
     // Assert (see above).
     let _ = env.objc.borrow_mut::<AppPickerDelegateHostObject>(this);
 
-    if let Err(e) = crate::window::open_url(env, "https://iDared32bit-emu.com/") {
+    if let Err(e) = crate::window::open_url(env, "https://github.com/fuba/ipa32emulator") {
         echo!("Couldn't open iDared32bit-emu.com: {}", e);
     }
 }
@@ -613,7 +613,7 @@ fn show_app_picker_gui(
     apps: Result<Vec<AppInfo>, String>,
 ) -> Result<(PathBuf, Vec<String>), String> {
     let icon = {
-        // iDared 32bit has one icon for every branding.
+        // IPA32 Emulator has one icon for every branding.
         let bytes: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/res/icon.png"));
         let mut image = Image::from_bytes(bytes).unwrap();
         // should match Bundle::load_icon()
@@ -756,7 +756,7 @@ fn app_picker_inner(
         let mut font_size: CGFloat = 12.0;
         let mut font: id = msg_class![env; UIFont systemFontOfSize:font_size];
         let full_text = format!(
-            "iDared 32bit {}{}{}",
+            "IPA32 Emulator {}{}{}",
             crate::branding(),
             if crate::branding().is_empty() {
                 ""
@@ -948,7 +948,7 @@ fn app_picker_inner(
         buttons_row2_center,
         &[
             ("Copyright info", "copyrightInfoShow"),
-            ("iDared 32bit Web", "visitWebsite"),
+            ("IPA32 Emulator Web", "visitWebsite"),
         ],
         None,
     );

@@ -434,7 +434,7 @@ impl Environment {
 
             Some(Box::new(window::Window::new(
                 &format!(
-                    "{} (iDared 32bit {}{}{})",
+                    "{} (IPA32 Emulator {}{}{})",
                     bundle.display_name(),
                     super::branding(),
                     if super::branding().is_empty() {
@@ -807,7 +807,7 @@ impl Environment {
         assert!(!options.headless);
         let mut window = Some(Box::new(window::Window::new(
             &format!(
-                "iDared 32bit {}{}{}",
+                "IPA32 Emulator {}{}{}",
                 super::branding(),
                 if super::branding().is_empty() {
                     ""
