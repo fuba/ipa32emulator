@@ -66,6 +66,7 @@ const APACHE_ONLY_CRATES: &[&str] = &[
     "hound",
     "mach_object",
     "owned_ttf_parser",
+    "zopfli",
 ];
 /// Rust libraries with an extra license, whose text is shown below.
 #[cfg(test)]
@@ -310,6 +311,12 @@ fn print(out: &mut String, resources_are_external_files: bool) -> Result<(), std
         out,
         "- LLVM's libc++, libc++_shared.so (Android only), with the LLVM exception",
     )?;
+    writeln!(
+        out,
+        "\nThe Rust library zopfli is a translation by the zopfli-rs contributors.\n\
+         The original Zopfli code is Copyright 2011 Google Inc.\n\
+         Contributors: <https://github.com/zopfli-rs/zopfli/graphs/contributors>.",
+    )?;
     writeln!(out, "\n{}", APACHE_2_0.trim_end())?;
     divider(out)?;
     // Line by line, as Git may give the file Windows line endings.
@@ -480,6 +487,9 @@ fn test_internal_files_license_text() {
     assert!(text.contains("END OF TERMS AND CONDITIONS"));
     assert!(!text.contains(EXTERNAL_FILES_CAVEAT));
     assert!(text.contains("the libxml2 license\nshown in this document"));
+    assert!(text.contains("- zopfli (Rust library)"));
+    assert!(text.contains("Copyright 2011 Google Inc."));
+    assert!(text.contains(APACHE_2_0.trim_end()));
     for holder in [
         "WHATWG",
         "Adrien Descamps",

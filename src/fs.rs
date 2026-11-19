@@ -605,9 +605,10 @@ impl Fs {
         bundle_dir_name: String,
         bundle_id: &str,
         read_only_mode: bool,
-    ) -> (Fs, GuestPathBuf) {
+    ) -> Result<(Fs, GuestPathBuf), String> {
         const FAKE_UUID: &str = "00000000-0000-0000-0000-000000000000";
 
+        let bundle_node = app_bundle.into_fs_node()?;
         let home_directory = APPLICATIONS.join(FAKE_UUID);
         let working_directory = GuestPathBuf::from("/".to_string());
 
@@ -727,7 +728,7 @@ impl Fs {
             );
 
         let mut app_dir_children = HashMap::new();
-        app_dir_children.insert(bundle_dir_name, app_bundle.into_fs_node());
+        app_dir_children.insert(bundle_dir_name, bundle_node);
         for (dir, host_path) in directories.iter().zip(host_path_directories.iter()) {
             if let Some(host_path) = host_path {
                 app_dir_children.insert(
@@ -764,7 +765,7 @@ impl Fs {
             home_directory,
         };
         assert!(fs.lookup_node(&bundle_guest_path).is_some());
-        (fs, bundle_guest_path)
+        Ok((fs, bundle_guest_path))
     }
 
     /// Create a fake filesystem (see [crate::Environment::new_without_app]).
