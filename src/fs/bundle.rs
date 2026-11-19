@@ -84,7 +84,9 @@ impl BundleData {
             let file = zip
                 .by_index(i)
                 .map_err(|e| format!("Could not open IPA archive entry: {e}"))?;
-            let path = file.name();
+            let path = file
+                .name()
+                .map_err(|e| format!("Could not read IPA archive entry name: {e}"))?;
             if let Some(name) = path
                 .strip_prefix("Payload/")
                 .and_then(|path| path.split_once('/'))
@@ -119,6 +121,8 @@ impl BundleData {
             std::fs::File::open(path).map_err(|e| format!("Could not open IPA file: {e}"))?;
         let mut zip =
             ZipArchive::new(file).map_err(|e| format!("Could not open IPA archive: {e}"))?;
+        zip.validate_header_consistency()
+            .map_err(|e| format!("Inconsistent IPA archive headers: {e}"))?;
         // A damaged or incomplete file (e.g. an unfinished download) can have
         // entries that can't be read, so check them all here.
         for i in 0..zip.len() {
@@ -147,8 +151,8 @@ impl BundleData {
         }
     }
 
-    pub(super) fn into_fs_node(self) -> FsNode {
-        match self {
+    pub(super) fn into_fs_node(self) -> Result<FsNode, String> {
+        let node = match self {
             BundleData::HostDirectory(path) => FsNode::from_host_dir(&path, false),
             BundleData::Zip { zip, bundle_path } => {
                 let archive = Rc::new(RefCell::new(zip));
@@ -159,8 +163,12 @@ impl BundleData {
 
                 let mut builder = FsNodeBuilder::new();
                 for i in 0..archive_guard.len() {
-                    let file = archive_guard.by_index(i).unwrap(); // TODO: report IO error?
-                    let name = file.name();
+                    let file = archive_guard
+                        .by_index(i)
+                        .map_err(|e| format!("Could not open IPA archive entry: {e}"))?;
+                    let name = file
+                        .name()
+                        .map_err(|e| format!("Could not read IPA archive entry name: {e}"))?;
                     if let Some(path) = name.strip_prefix(&bundle_path) {
                         let path = GuestPath::new(path);
                         if file.is_dir() {
@@ -180,7 +188,8 @@ impl BundleData {
                 }
                 builder.build()
             }
-        }
+        };
+        Ok(node)
     }
 
     pub fn read_plist(&mut self) -> Result<Vec<u8>, String> {
@@ -227,6 +236,61 @@ pub struct IpaFileRef {
     index: usize,
 }
 
+#[cfg(test)]
+#[test]
+fn reads_stored_and_deflated_ipa_entries() {
+    use crate::fs::FileLocation;
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+    use zip::{CompressionMethod, DateTime, ZipWriter};
+
+    let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+    let options = SimpleFileOptions::default()
+        .last_modified_time(DateTime::from_date_and_time(2000, 1, 1, 0, 0, 0).unwrap());
+    let plist = b"<plist><dict/></plist>";
+    writer
+        .start_file(
+            "Payload/Example.app/Info.plist",
+            options.compression_method(CompressionMethod::Stored),
+        )
+        .unwrap();
+    writer.write_all(plist).unwrap();
+
+    let resource = b"deflated IPA resource";
+    writer
+        .start_file(
+            "Payload/Example.app/asset.bin",
+            options.compression_method(CompressionMethod::Deflated),
+        )
+        .unwrap();
+    writer.write_all(resource).unwrap();
+
+    let path = std::env::temp_dir().join(format!("ipa32-test-{}.ipa", uuid::Uuid::new_v4()));
+    std::fs::write(&path, writer.finish().unwrap().into_inner()).unwrap();
+    let bundle = BundleData::open_ipa(&path).and_then(|mut bundle| {
+        assert_eq!(bundle.bundle_name(), "Example");
+        assert_eq!(bundle.read_plist()?, plist);
+        bundle.into_fs_node()
+    });
+    let FsNode::Directory { children, .. } = bundle.unwrap() else {
+        panic!("expected an IPA directory");
+    };
+    let FsNode::File {
+        location: FileLocation::IpaFileRef(asset),
+        ..
+    } = &children["asset.bin"]
+    else {
+        panic!("expected an IPA resource");
+    };
+    assert_eq!(asset.get_last_modified(), 946_684_800);
+    assert_eq!(asset.get_size(), resource.len() as u64);
+    let mut data = Vec::new();
+    asset.open().read_to_end(&mut data).unwrap();
+    drop(children);
+    std::fs::remove_file(path).unwrap();
+    assert_eq!(data, resource);
+}
+
 impl IpaFileRef {
     pub fn open(&self) -> IpaFile {
         // Some games, like THPS2, use a single resource bundle file which is
@@ -251,7 +315,7 @@ impl IpaFileRef {
             };
             let mut metadata_map = (*self.metadata_map).borrow_mut();
             assert!(!metadata_map.contains_key(&self.index));
-            let modified = file.last_modified();
+            let modified = file.last_modified().unwrap_or_default();
             // This is not the cleanest way!
             // TODO: just use `time` or `chrono` crates for time conversions
             // (this also entails a lot of refactoring in [crate::libc:time])

@@ -50,7 +50,7 @@ impl Bundle {
         );
         let bundle_id = plist["CFBundleIdentifier"].as_string().unwrap();
 
-        let (fs, guest_path) = Fs::new(bundle_data, bundle_name, bundle_id, read_only_mode);
+        let (fs, guest_path) = Fs::new(bundle_data, bundle_name, bundle_id, read_only_mode)?;
 
         let bundle = Bundle {
             path: guest_path,
